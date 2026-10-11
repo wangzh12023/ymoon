@@ -1,0 +1,101 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "wangzh12023/ymoon/lib0"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn is_js_array_index(StringView) -> Bool
+
+pub fn js_number_to_string(Double) -> String
+
+pub fn js_object_keys(Map[String, Any]) -> Array[String]
+
+pub let max_any_depth : Int
+
+pub fn parse_json(StringView) -> Any raise JsonError
+
+pub fn utf16_well_formed(StringView) -> StringView
+
+pub fn write_json_string(StringBuilder, StringView) -> Unit
+
+// Errors
+pub(all) suberror DecodeError {
+  UnexpectedEnd(pos~ : Int)
+  IntegerOutOfRange(pos~ : Int)
+  InvalidUtf8(pos~ : Int)
+  UnknownTag(pos~ : Int, tag~ : Int)
+  Malformed(pos~ : Int, reason~ : String)
+} derive(Eq, @debug.Debug)
+pub fn DecodeError::equal(Self, Self) -> Bool
+pub fn DecodeError::to_string(Self) -> String
+pub impl Show for DecodeError
+
+pub(all) suberror JsonError {
+  InvalidJson(pos~ : Int)
+} derive(Eq, @debug.Debug)
+pub fn JsonError::equal(Self, Self) -> Bool
+pub fn JsonError::to_string(Self) -> String
+pub impl Show for JsonError
+
+// Types and methods
+pub(all) enum Any {
+  Undefined
+  Null
+  Bool(Bool)
+  Number(Double)
+  BigInt64(Int64)
+  String(String)
+  Bytes(Bytes)
+  Array(Array[Any])
+  Object(Map[String, Any])
+} derive(Eq, @debug.Debug)
+pub fn Any::equal(Self, Self) -> Bool
+pub fn Any::int(Int) -> Self
+pub fn Any::object(ArrayView[(String, Self)]) -> Self
+pub fn Any::str(StringView) -> Self
+pub fn Any::to_json_string(Self) -> String
+
+pub struct Decoder {
+  // private fields
+}
+pub fn Decoder::Decoder(BytesView) -> Self
+pub fn Decoder::has_content(Self) -> Bool
+pub fn Decoder::length(Self) -> Int
+pub fn Decoder::pos(Self) -> Int
+pub fn Decoder::read_any(Self) -> Any raise DecodeError
+pub fn Decoder::read_big_int64(Self) -> Int64 raise DecodeError
+pub fn Decoder::read_float32(Self) -> Float raise DecodeError
+pub fn Decoder::read_float64(Self) -> Double raise DecodeError
+pub fn Decoder::read_raw(Self, Int) -> BytesView raise DecodeError
+pub fn Decoder::read_u8(Self) -> Int raise DecodeError
+pub fn Decoder::read_var_bytes(Self) -> Bytes raise DecodeError
+pub fn Decoder::read_var_int64(Self) -> Int64 raise DecodeError
+pub fn Decoder::read_var_int64_ext(Self) -> (Int64, Bool) raise DecodeError
+pub fn Decoder::read_var_string(Self) -> String raise DecodeError
+pub fn Decoder::read_var_uint(Self) -> Int raise DecodeError
+pub fn Decoder::read_var_uint64(Self) -> UInt64 raise DecodeError
+
+pub struct Encoder {
+  // private fields
+}
+pub fn Encoder::Encoder(size_hint? : Int) -> Self
+pub fn Encoder::length(Self) -> Int
+pub fn Encoder::to_bytes(Self) -> Bytes
+pub fn Encoder::write_any(Self, Any) -> Unit
+pub fn Encoder::write_big_int64(Self, Int64) -> Unit
+pub fn Encoder::write_float32(Self, Float) -> Unit
+pub fn Encoder::write_float64(Self, Double) -> Unit
+pub fn Encoder::write_raw(Self, BytesView) -> Unit
+pub fn Encoder::write_u8(Self, Int) -> Unit
+pub fn Encoder::write_var_bytes(Self, BytesView) -> Unit
+pub fn Encoder::write_var_int(Self, Int) -> Unit
+pub fn Encoder::write_var_int64(Self, Int64, negative_zero? : Bool) -> Unit
+pub fn Encoder::write_var_string(Self, StringView) -> Unit
+pub fn Encoder::write_var_uint(Self, Int) -> Unit
+pub fn Encoder::write_var_uint64(Self, UInt64) -> Unit
+
+// Type aliases
+
+// Traits

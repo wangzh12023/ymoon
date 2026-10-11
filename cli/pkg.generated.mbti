@@ -1,0 +1,37 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "wangzh12023/ymoon/cli"
+
+import {
+  "moonbitlang/core/argparse",
+  "wangzh12023/ymoon",
+}
+
+// Values
+pub fn command() -> @argparse.Command
+
+pub fn doc_to_json(@ymoon.Doc) -> Json
+
+pub fn inspect_updates(Array[Bytes], json? : Bool) -> String raise
+
+pub fn parse_args(ArrayView[String]) -> Invocation raise
+
+pub fn run(Invocation, Array[Bytes]) -> Output raise
+
+// Errors
+
+// Types and methods
+pub(all) struct Invocation {
+  name : String
+  inputs : Array[String]
+  output : String?
+  json : Bool
+}
+
+pub(all) enum Output {
+  Text(String)
+  Binary(Bytes)
+}
+
+// Type aliases
+
+// Traits

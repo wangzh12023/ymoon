@@ -1,0 +1,20 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "wangzh12023/ymoon/verified"
+
+// Values
+pub fn check_ranges(FixedArray[Int], FixedArray[Int]) -> Bool
+
+pub fn find_range(FixedArray[Int], FixedArray[Int], Int) -> Int?
+
+pub fn merge_ranges(Int, Int, Int, Int) -> (Int, Int)?
+
+pub fn missing_offset(Int, Int, Int) -> Int?
+
+// Errors
+
+// Types and methods
+type MathInt
+
+// Type aliases
+
+// Traits

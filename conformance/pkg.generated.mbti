@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "wangzh12023/ymoon/conformance"
+
+// Values
+pub fn hex(Bytes) -> String
+
+pub fn replay_trace(StringView) -> TraceResult raise
+
+pub fn unhex(StringView) -> Bytes
+
+// Errors
+
+// Types and methods
+pub(all) struct TraceResult {
+  id : Int
+  mode : String
+  checks : Int
+  failure : String?
+}
+
+// Type aliases
+
+// Traits

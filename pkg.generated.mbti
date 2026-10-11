@@ -1,0 +1,309 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "wangzh12023/ymoon"
+
+import {
+  "moonbitlang/core/debug",
+  "wangzh12023/ymoon/lib0",
+}
+
+// Values
+pub fn any_to_json(@lib0.Any) -> Json
+
+pub fn any_to_json_string(@lib0.Any) -> String
+
+pub fn decode_update(BytesView) -> (Array[DecodedStruct], DeleteSet) raise @lib0.DecodeError
+
+pub fn delta_to_json(ArrayView[DeltaRun]) -> Json
+
+pub fn diff_update(BytesView, BytesView) -> Bytes raise @lib0.DecodeError
+
+pub fn encode_state_vector_from_update(BytesView) -> Bytes raise @lib0.DecodeError
+
+pub fn json_to_any(Json) -> @lib0.Any
+
+pub fn merge_updates(ArrayView[Bytes]) -> Bytes raise @lib0.DecodeError
+
+// Errors
+pub(all) suberror TypeError {
+  LengthExceeded(index~ : Int, length~ : Int)
+} derive(Eq, @debug.Debug)
+pub fn TypeError::equal(Self, Self) -> Bool
+pub fn TypeError::to_string(Self) -> String
+pub impl Show for TypeError
+
+// Types and methods
+pub struct ArrayRef {
+  branch : Branch
+}
+pub fn ArrayRef::branch(Self) -> Branch
+pub fn ArrayRef::delete(Self, Int, length? : Int) -> Unit raise TypeError
+pub fn ArrayRef::from_branch(Branch) -> Self
+pub fn ArrayRef::get(Self, Int) -> Out?
+pub fn ArrayRef::insert(Self, Int, ArrayView[Value]) -> Unit raise TypeError
+pub fn ArrayRef::insert_shared(Self, Int, TypeRef) -> Branch raise TypeError
+pub fn ArrayRef::length(Self) -> Int
+pub fn ArrayRef::push(Self, ArrayView[Value]) -> Unit
+pub fn ArrayRef::to_array(Self) -> Array[Out]
+pub fn ArrayRef::to_json(Self) -> Json
+pub fn ArrayRef::unshift(Self, ArrayView[Value]) -> Unit raise TypeError
+
+pub struct Branch {
+  mut item : Item?
+  map : Map[String, Item]
+  mut start : Item?
+  mut doc : Doc?
+  mut length : Int
+  mut kind : TypeRef?
+  mut has_formatting : Bool
+  // private fields
+}
+pub fn Branch::id(Self) -> ID?
+pub fn Branch::inferred_kind(Self) -> TypeRef?
+pub fn Branch::kind(Self) -> TypeRef?
+pub fn Branch::len(Self) -> Int
+pub fn Branch::to_json(Self) -> Json
+
+pub(all) enum Content {
+  CDeleted(Int)
+  CJson(Array[@lib0.Any])
+  CBinary(Bytes)
+  CString(String)
+  CEmbed(@lib0.Any)
+  CFormat(String, @lib0.Any)
+  CType(Branch)
+  CAny(Array[@lib0.Any])
+  CDoc(String, @lib0.Any)
+}
+
+pub(all) enum DecodedStruct {
+  GC(client~ : UInt, clock~ : Int, len~ : Int)
+  Skip(client~ : UInt, clock~ : Int, len~ : Int)
+  Item(client~ : UInt, clock~ : Int, len~ : Int, origin~ : ID?, right_origin~ : ID?, parent~ : String?, parent_sub~ : String?, content~ : String)
+} derive(Eq, @debug.Debug)
+pub fn DecodedStruct::equal(Self, Self) -> Bool
+
+pub(all) struct DeleteItem {
+  clock : Int
+  len : Int
+} derive(Eq, @debug.Debug)
+pub fn DeleteItem::equal(Self, Self) -> Bool
+
+pub struct DeleteSet {
+  // private fields
+}
+pub fn DeleteSet::DeleteSet() -> Self
+pub fn DeleteSet::add(Self, UInt, Int, Int) -> Unit
+pub fn DeleteSet::clients(Self) -> Array[UInt]
+pub fn DeleteSet::contains(Self, ID) -> Bool
+pub fn DeleteSet::is_empty(Self) -> Bool
+pub fn DeleteSet::merge_all(ArrayView[Self]) -> Self
+pub fn DeleteSet::ranges(Self, UInt) -> Array[DeleteItem]
+pub fn DeleteSet::read(@lib0.Decoder) -> Self raise @lib0.DecodeError
+pub fn DeleteSet::sort_and_merge(Self) -> Unit
+pub fn DeleteSet::write(Self, @lib0.Encoder) -> Unit
+
+pub(all) enum Delta {
+  Insert(TextChunk, attributes~ : Map[String, @lib0.Any])
+  Retain(Int, attributes~ : Map[String, @lib0.Any])
+  Delete(Int)
+}
+
+pub(all) enum DeltaInsert {
+  Text(String)
+  Embed(@lib0.Any)
+  Shared(Branch)
+}
+
+pub(all) struct DeltaRun {
+  insert : DeltaInsert
+  attributes : Map[String, @lib0.Any]?
+}
+
+pub struct Doc {
+  mut client_id : UInt
+  gc : Bool
+  guid : String
+  share : Map[String, Branch]
+  store : StructStore
+  // private fields
+}
+pub fn Doc::Doc(client_id? : UInt, gc? : Bool, guid? : String) -> Self
+pub fn Doc::apply_update(Self, BytesView, origin? : String) -> Unit raise @lib0.DecodeError
+pub fn Doc::clear_update_handlers(Self) -> Unit
+pub fn Doc::client_id(Self) -> UInt
+pub fn Doc::encode_state_as_update(Self, target? : StateVector) -> Bytes
+pub fn Doc::encode_state_vector(Self) -> Bytes
+pub fn Doc::get_array(Self, String) -> ArrayRef
+pub fn Doc::get_map(Self, String) -> MapRef
+pub fn Doc::get_text(Self, String) -> TextRef
+pub fn Doc::get_xml_fragment(Self, String) -> XmlRef
+pub fn Doc::has_pending(Self) -> Bool
+pub fn Doc::observe(Self, (Transaction) -> Unit) -> Unit
+pub fn Doc::on_after_transaction(Self, (Transaction) -> Unit) -> Unit
+pub fn Doc::on_update(Self, (Bytes, String) -> Unit) -> Unit
+pub fn Doc::root(Self, String) -> Branch?
+pub fn Doc::root_names(Self) -> Array[String]
+pub fn Doc::state_vector(Self) -> StateVector
+pub fn[T] Doc::transact(Self, (Transaction) -> T raise?, origin? : String, is_local? : Bool) -> T raise?
+
+pub struct GCRange {
+  mut id : ID
+  mut len : Int
+}
+
+pub(all) struct ID {
+  client : UInt
+  clock : Int
+} derive(Compare, Eq, Hash, @debug.Debug)
+pub fn ID::ID(UInt, Int) -> Self
+pub fn ID::compare(Self, Self) -> Int
+pub fn ID::equal(Self, Self) -> Bool
+pub fn ID::hash(Self) -> Int
+
+pub struct Item {
+  mut id : ID
+  mut len : Int
+  mut origin : ID?
+  mut left : Item?
+  mut right : Item?
+  mut right_origin : ID?
+  mut parent : Parent
+  mut parent_sub : String?
+  mut content : Content
+  mut info : Int
+  mut redone : ID?
+}
+pub fn Item::deleted(Self) -> Bool
+
+pub struct MapRef {
+  branch : Branch
+}
+pub fn MapRef::branch(Self) -> Branch
+pub fn MapRef::clear(Self) -> Unit
+pub fn MapRef::delete(Self, String) -> Unit
+pub fn MapRef::entries(Self) -> Array[(String, Out)]
+pub fn MapRef::from_branch(Branch) -> Self
+pub fn MapRef::get(Self, String) -> Out?
+pub fn MapRef::has(Self, String) -> Bool
+pub fn MapRef::keys(Self) -> Array[String]
+pub fn MapRef::set(Self, String, Value) -> Unit
+pub fn MapRef::set_shared(Self, String, TypeRef) -> Branch
+pub fn MapRef::size(Self) -> Int
+pub fn MapRef::to_json(Self) -> Json
+
+pub enum Out {
+  Any(@lib0.Any)
+  Shared(Branch)
+  SubDoc(String)
+}
+pub fn Out::as_any(Self) -> @lib0.Any?
+pub fn Out::as_shared(Self) -> Branch?
+pub fn Out::to_json(Self) -> Json
+
+pub enum Parent {
+  Branch(Branch)
+  PendingId(ID)
+  PendingRoot(String)
+  Unknown
+  Gone
+}
+
+type SearchMarker
+
+pub struct StateVector {
+  // private fields
+}
+pub fn StateVector::StateVector() -> Self
+pub fn StateVector::contains(Self, UInt) -> Bool
+pub fn StateVector::decode(BytesView) -> Self raise @lib0.DecodeError
+pub fn StateVector::encode(Self) -> Bytes
+pub fn StateVector::entries(Self) -> Array[(UInt, Int)]
+pub fn StateVector::get(Self, UInt) -> Int
+pub fn StateVector::length(Self) -> Int
+pub fn StateVector::set(Self, UInt, Int) -> Unit
+
+pub enum Struct {
+  GC(GCRange)
+  Item(Item)
+  Skip(GCRange)
+}
+
+pub struct StructStore {
+  // private fields
+}
+pub fn StructStore::get_state(Self, UInt) -> Int
+pub fn StructStore::state_vector(Self) -> StateVector
+
+pub(all) enum TextChunk {
+  Text(String)
+  Embed(@lib0.Any)
+  Shared(TypeRef)
+}
+
+pub struct TextRef {
+  branch : Branch
+}
+pub fn TextRef::apply_delta(Self, ArrayView[Delta]) -> Unit
+pub fn TextRef::branch(Self) -> Branch
+pub fn TextRef::delete(Self, Int, Int) -> Unit raise TypeError
+pub fn TextRef::format(Self, Int, Int, Map[String, @lib0.Any]) -> Unit
+pub fn TextRef::from_branch(Branch) -> Self
+pub fn TextRef::insert(Self, Int, String, attributes? : Map[String, @lib0.Any]) -> Unit raise TypeError
+pub fn TextRef::insert_embed(Self, Int, @lib0.Any, attributes? : Map[String, @lib0.Any]) -> Unit raise TypeError
+pub fn TextRef::length(Self) -> Int
+pub fn TextRef::to_delta(Self) -> Array[DeltaRun]
+pub fn TextRef::to_string(Self) -> String
+
+pub struct Transaction {
+  doc : Doc
+  delete_set : DeleteSet
+  before_state : StateVector
+  mut after_state : StateVector
+  origin : String
+  mut is_local : Bool
+  // private fields
+}
+pub fn Transaction::changed_types(Self) -> Array[(Branch, Array[String?])]
+
+pub(all) enum TypeRef {
+  YArray
+  YMap
+  YText
+  YXmlElement(String)
+  YXmlFragment
+  YXmlHook(String)
+  YXmlText
+} derive(Eq, @debug.Debug)
+pub fn TypeRef::equal(Self, Self) -> Bool
+
+pub(all) enum Value {
+  Any(@lib0.Any)
+  Binary(Bytes)
+  Shared(TypeRef)
+  SubDoc(String, @lib0.Any)
+}
+pub fn Value::bool(Bool) -> Self
+pub fn Value::int(Int) -> Self
+pub fn Value::num(Double) -> Self
+pub fn Value::str(StringView) -> Self
+
+pub struct XmlRef {
+  branch : Branch
+}
+pub fn XmlRef::branch(Self) -> Branch
+pub fn XmlRef::children(Self) -> Array[Branch]
+pub fn XmlRef::delete(Self, Int, length? : Int) -> Unit raise TypeError
+pub fn XmlRef::from_branch(Branch) -> Self
+pub fn XmlRef::get_attribute(Self, String) -> String?
+pub fn XmlRef::insert_element(Self, Int, String) -> Self raise TypeError
+pub fn XmlRef::insert_text(Self, Int) -> TextRef raise TypeError
+pub fn XmlRef::length(Self) -> Int
+pub fn XmlRef::node_name(Self) -> String?
+pub fn XmlRef::remove_attribute(Self, String) -> Unit
+pub fn XmlRef::set_attribute(Self, String, String) -> Unit
+pub fn XmlRef::to_string(Self) -> String
+
+// Type aliases
+pub type Attrs = Map[String, @lib0.Any]
+
+// Traits

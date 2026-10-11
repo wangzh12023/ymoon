@@ -1,0 +1,95 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "wangzh12023/ymoon/protocols"
+
+import {
+  "moonbitlang/core/debug",
+  "wangzh12023/ymoon",
+  "wangzh12023/ymoon/lib0",
+}
+
+// Values
+pub const OUTDATED_TIMEOUT : UInt64 = 30000
+
+pub fn handle_sync_message(@ymoon.Doc, SyncMessage, origin? : String) -> SyncMessage? raise @lib0.DecodeError
+
+pub fn modify_awareness_update(BytesView, (@lib0.Any) -> @lib0.Any) -> Bytes raise @lib0.DecodeError
+
+pub fn sync_step1(@ymoon.Doc) -> SyncMessage
+
+pub fn sync_step2(@ymoon.Doc, BytesView) -> SyncMessage raise @lib0.DecodeError
+
+// Errors
+
+// Types and methods
+pub struct Awareness {
+  client_id : UInt
+  // private fields
+}
+pub fn Awareness::Awareness(UInt, now? : () -> UInt64) -> Self
+pub fn Awareness::apply_update(Self, BytesView, String) -> Unit raise @lib0.DecodeError
+pub fn Awareness::check_outdated(Self) -> Unit
+pub fn Awareness::encode_update(Self, ArrayView[UInt]) -> Bytes
+pub fn Awareness::local_state(Self) -> @lib0.Any?
+pub fn Awareness::meta(Self, UInt) -> MetaClientState?
+pub fn Awareness::on_change(Self, (AwarenessChange, String) -> Unit) -> Unit
+pub fn Awareness::on_update(Self, (AwarenessChange, String) -> Unit) -> Unit
+pub fn Awareness::remove_states(Self, ArrayView[UInt], String) -> Unit
+pub fn Awareness::set_local_state(Self, @lib0.Any?) -> Unit
+pub fn Awareness::set_local_state_field(Self, String, @lib0.Any) -> Unit
+pub fn Awareness::states(Self) -> Map[UInt, @lib0.Any]
+
+pub(all) struct AwarenessChange {
+  added : Array[UInt]
+  updated : Array[UInt]
+  removed : Array[UInt]
+} derive(Eq, @debug.Debug)
+pub fn AwarenessChange::equal(Self, Self) -> Bool
+
+pub struct Hub {
+  // private fields
+}
+pub fn Hub::Hub() -> Self
+pub fn Hub::room(Self, String) -> Room
+pub fn Hub::room_names(Self) -> Array[String]
+
+pub(all) enum Message {
+  Sync(SyncMessage)
+  AwarenessUpdate(Bytes)
+  AuthPermissionDenied(String)
+  QueryAwareness
+} derive(Eq, @debug.Debug)
+pub fn Message::decode(BytesView) -> Self raise @lib0.DecodeError
+pub fn Message::encode(Self) -> Bytes
+pub fn Message::equal(Self, Self) -> Bool
+
+pub(all) struct MetaClientState {
+  clock : Int
+  last_updated : UInt64
+} derive(Eq, @debug.Debug)
+pub fn MetaClientState::equal(Self, Self) -> Bool
+
+pub struct Room {
+  name : String
+  doc : @ymoon.Doc
+  awareness : Awareness
+  // private fields
+}
+pub fn Room::Room(String, client_id? : UInt) -> Self
+pub fn Room::connect(Self, Int, (Bytes) -> Unit) -> Unit
+pub fn Room::connection_count(Self) -> Int
+pub fn Room::disconnect(Self, Int) -> Unit
+pub fn Room::receive(Self, Int, BytesView) -> Unit raise @lib0.DecodeError
+
+pub(all) enum SyncMessage {
+  SyncStep1(Bytes)
+  SyncStep2(Bytes)
+  Update(Bytes)
+} derive(Eq, @debug.Debug)
+pub fn SyncMessage::equal(Self, Self) -> Bool
+pub fn SyncMessage::read(@lib0.Decoder) -> Self raise @lib0.DecodeError
+pub fn SyncMessage::write(Self, @lib0.Encoder) -> Unit
+
+// Type aliases
+pub type ConnId = Int
+
+// Traits
