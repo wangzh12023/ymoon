@@ -109,10 +109,12 @@ jobs:
       - name: E2E with official y-websocket clients
         run: |
           cd oracle && npm ci && cd ..
-          BIN=$(find server/_build _build -path '*native/release/build/main/main.exe' 2>/dev/null | head -n 1)
+          BIN=$(find _build server/_build -type f \( -name 'main.exe' -o -name 'main' \) -path '*native/release*' 2>/dev/null | grep -i server | head -n 1)
+          if [ -z "$BIN" ]; then find _build server/_build -path '*native/release*' -type f | head -50; exit 1; fi
           echo "server binary: $BIN"
-          "$BIN" 4455 &
+          "$BIN" 4455 > server.log 2>&1 &
           SERVER_PID=$!
-          sleep 2
-          node oracle/e2e-native-server.mjs 4455
+          sleep 3
+          cat server.log
+          node oracle/e2e-native-server.mjs 4455 || (cat server.log; exit 1)
           kill $SERVER_PID

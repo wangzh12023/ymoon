@@ -7,14 +7,12 @@
 // Any y-websocket client (Tiptap, BlockNote, Monaco, CodeMirror bindings, ...)
 // can connect to ws://localhost:<port>/<room-name>.
 import { WebSocketServer } from 'ws'
-import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
-const here = path.dirname(fileURLToPath(import.meta.url))
-const root = path.resolve(here, '../..')
-const buildDir = process.env.YMOON_BUILD || path.join(root, '_build/js/release/build/js')
-const ymoon = await import(pathToFileURL(path.join(buildDir, 'js.js')).href)
+import { ymoonJsPath } from '../../oracle/find-build.mjs'
+
+const ymoon = await import(pathToFileURL(process.env.YMOON_JS || ymoonJsPath()).href)
 
 export function startServer ({ port = 1234, log = console.log } = {}) {
   const rooms = new Map() // name -> { handle, sockets: Map<connId, ws> }

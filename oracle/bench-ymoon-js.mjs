@@ -4,7 +4,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 const here = path.dirname(fileURLToPath(import.meta.url))
-const ymoon = await import(pathToFileURL(path.join(here, '../_build/js/release/build/js/js.js')).href)
+import { ymoonJsPath } from './find-build.mjs'
+const ymoon = await import(pathToFileURL(ymoonJsPath()).href)
 const file = process.argv[2] || path.join(here, '../bench/data/automerge-paper.bin')
 const b = fs.readFileSync(file)
 const n = b.readUInt32LE(0)

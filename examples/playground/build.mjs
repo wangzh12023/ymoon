@@ -12,11 +12,8 @@ import { fileURLToPath } from 'node:url'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(here, '../..')
-const entry = path.join(root, '_build/js/release/build/js/js.js')
-if (!fs.existsSync(entry)) {
-  console.error('missing ' + entry + '\nrun `moon build --target js --release` first')
-  process.exit(1)
-}
+const { ymoonJsPath } = await import('../../oracle/find-build.mjs')
+const entry = ymoonJsPath()
 const result = await build({
   entryPoints: [entry],
   bundle: true,
