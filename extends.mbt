@@ -107,3 +107,8 @@ pub extend Segment with Eq::{not_equal}
 #deprecated("Use `Repr(x)` instead", skip_current_package=true)
 #doc(hidden)
 pub extend Segment with @debug.Debug::{to_repr}
+
+///|
+#deprecated("Use `to_string` or string interpolation instead", skip_current_package=true)
+#doc(hidden)
+pub extend TypeError with Show::{output}

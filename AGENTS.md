@@ -1,6 +1,17 @@
 # Project Agents.md Guide
 
-This is a [MoonBit](https://docs.moonbitlang.com) project.
+This is a [MoonBit](https://docs.moonbitlang.com) project: ymoon, a port of
+Yjs that must stay byte-compatible with yjs@13.6.33.
+
+## Rules specific to ymoon
+
+- Never change encoder output without regenerating and replaying the
+  differential traces: `cd oracle && node gen-traces.mjs 2000 7 > out/traces.jsonl`,
+  then `moon test -p wangzh12023/ymoon/conformance --target native --release`.
+- Ports follow the upstream JavaScript structure; keep the upstream function
+  name in the doc comment (for example `(\`findIndexSS\`)`).
+- `verified/` must keep proving: run
+  `MOON_PROVE_PRELUDE_OVERRIDE=~/.moon/lib/prelude_proof_machine_int moon prove verified`.
 
 You can browse and install extra skills here:
 <https://github.com/moonbitlang/skills>

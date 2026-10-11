@@ -1,29 +1,27 @@
-// Learn more about moon.mod configuration:
-// https://docs.moonbitlang.com/en/latest/toolchain/moon/module.html
-//
-// To add a dependency, run this command in your terminal:
-//   moon add moonbitlang/x
-//
-// Or manually declare it in `import`, for example:
-// import {
-//   "moonbitlang/x@0.4.6",
-// }
-
 name = "wangzh12023/ymoon"
 
 version = "0.1.0"
 
 readme = "README.mbt.md"
 
-repository = ""
+repository = "https://github.com/wangzh12023/ymoon"
 
 license = "Apache-2.0"
 
-keywords = [ ]
+keywords = [
+  "yjs",
+  "crdt",
+  "collaboration",
+  "local-first",
+  "y-websocket",
+  "sync",
+  "rich text",
+  "lib0",
+]
 
 preferred_target = "wasm"
 
-description = ""
+description = "Yjs CRDT for MoonBit, byte-compatible with yjs@13.6: shared text/map/array/XML types, sync and awareness protocols, y-websocket rooms"
 
 import {
   "moonbitlang/x@0.5.5",

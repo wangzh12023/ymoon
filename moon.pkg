@@ -2,7 +2,6 @@ import {
   "wangzh12023/ymoon/lib0",
   "wangzh12023/ymoon/verified",
   "moonbitlang/core/debug",
-  "moonbitlang/core/json",
   "moonbitlang/core/hashset",
   "moonbitlang/core/env",
   "moonbitlang/core/random",
@@ -13,4 +12,5 @@ import {
   "moonbitlang/core/quickcheck",
   "moonbitlang/core/cmp",
   "wangzh12023/ymoon/lib0",
+  "wangzh12023/ymoon/protocols",
 } for "test"

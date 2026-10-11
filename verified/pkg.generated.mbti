@@ -13,7 +13,6 @@ pub fn missing_offset(Int, Int, Int) -> Int?
 // Errors
 
 // Types and methods
-type MathInt
 
 // Type aliases
 

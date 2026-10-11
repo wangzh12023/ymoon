@@ -7,6 +7,8 @@ import {
 }
 
 // Values
+pub fn annotate_update(BytesView) -> Array[Segment] raise @lib0.DecodeError
+
 pub fn any_to_json(@lib0.Any) -> Json
 
 pub fn any_to_json_string(@lib0.Any) -> String
@@ -209,6 +211,29 @@ pub enum Parent {
 }
 
 type SearchMarker
+
+pub(all) struct Segment {
+  start : Int
+  end : Int
+  kind : SegmentKind
+  label : String
+} derive(Eq, @debug.Debug)
+pub fn Segment::equal(Self, Self) -> Bool
+
+pub(all) enum SegmentKind {
+  Header
+  Client
+  Clock
+  Info
+  Origin
+  RightOrigin
+  Parent
+  Key
+  Content
+  Deletes
+} derive(Eq, @debug.Debug)
+pub fn SegmentKind::equal(Self, Self) -> Bool
+pub fn SegmentKind::name(Self) -> String
 
 pub struct StateVector {
   // private fields

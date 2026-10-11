@@ -42,3 +42,13 @@ pub extend DecodeError with Show::{to_string}
 
 ///|
 pub extend JsonError with Show::{to_string}
+
+///|
+#deprecated("Use `to_string` or string interpolation instead", skip_current_package=true)
+#doc(hidden)
+pub extend DecodeError with Show::{output}
+
+///|
+#deprecated("Use `to_string` or string interpolation instead", skip_current_package=true)
+#doc(hidden)
+pub extend JsonError with Show::{output}

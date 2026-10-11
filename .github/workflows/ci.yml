@@ -1,0 +1,86 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: check, build, test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Toolchain versions
+        run: moon version --all
+
+      - name: Fetch dependencies
+        run: moon update && moon install
+
+      - name: moon check (all targets)
+        run: moon check --target all
+
+      - name: moon fmt
+        run: moon fmt --check
+
+      - name: Interface files are up to date
+        run: |
+          moon info
+          git diff --exit-code -- '*.mbti'
+
+      - name: Generate differential traces with the JavaScript yjs
+        working-directory: oracle
+        run: |
+          npm ci
+          mkdir -p out
+          node gen-traces.mjs 1000 ${{ github.run_number }} > out/traces.jsonl
+
+      - name: moon test (wasm, wasm-gc, js, native)
+        run: moon test --target all
+
+      - name: Build CLI and JS bundle
+        run: |
+          moon build cmd/ymoon --target native --release
+          moon build --target js --release
+
+      - name: End-to-end interop with official y-websocket clients
+        run: |
+          cd examples/ywebsocket-server && npm ci && cd ../..
+          node oracle/e2e-ywebsocket.mjs
+
+  prove:
+    name: moon prove (formal verification)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Install Z3
+        run: |
+          curl -fsSL -o z3.zip https://github.com/Z3Prover/z3/releases/download/z3-4.15.3/z3-4.15.3-x64-glibc-2.39.zip
+          unzip -q z3.zip -d z3
+          echo "$(dirname "$(find "$PWD/z3" -type f -name z3 | head -n 1)")" >> "$GITHUB_PATH"
+
+      - name: Prove with bounded machine integers (overflow checked)
+        run: |
+          moon update
+          MOON_PROVE_PRELUDE_OVERRIDE="$HOME/.moon/lib/prelude_proof_machine_int" moon prove verified

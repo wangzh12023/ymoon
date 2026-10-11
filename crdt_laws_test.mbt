@@ -15,7 +15,7 @@ priv enum Edit {
   MapSet(peer~ : Int, key~ : Int, value~ : Int)
   ArrayPush(peer~ : Int, value~ : Int)
   Sync(from~ : Int, to~ : Int)
-} derive(Debug)
+}
 
 ///|
 fn gen_script(seeds : Array[UInt]) -> Array[Edit] {
