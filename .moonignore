@@ -1,0 +1,10 @@
+# keep the published module small: benchmark data, web assets and the
+# JavaScript test oracle live in the git repository only
+bench/data/
+docs/
+examples/playground/
+oracle/
+testdata/
+.github/
+.githooks/
+.proof/

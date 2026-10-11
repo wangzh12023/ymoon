@@ -84,3 +84,35 @@ jobs:
         run: |
           moon update
           MOON_PROVE_PRELUDE_OVERRIDE="$HOME/.moon/lib/prelude_proof_machine_int" moon prove verified
+
+  native-server:
+    name: native MoonBit y-websocket server (moonbitlang/async)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Fetch dependencies (moon.work resolves ymoon from this checkout)
+        run: moon update
+
+      - name: Build the server
+        run: moon -C server build main --target native --release
+
+      - name: E2E with official y-websocket clients
+        run: |
+          cd oracle && npm ci && cd ..
+          BIN=$(find server/_build _build -path '*native/release/build/main/main.exe' 2>/dev/null | head -n 1)
+          echo "server binary: $BIN"
+          "$BIN" 4455 &
+          SERVER_PID=$!
+          sleep 2
+          node oracle/e2e-native-server.mjs 4455
+          kill $SERVER_PID
