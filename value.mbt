@@ -79,23 +79,61 @@ pub fn Out::as_shared(self : Out) -> Branch? {
 
 ///|
 /// JSON view of a shared type (`toJSON`).
+///
+/// Root types that were created by remote updates but never accessed with a
+/// concrete kind (typical for servers that only relay data) are rendered by
+/// inferring their shape: a list of string runs as text, other list content as
+/// an array, keyed content as a map.
 pub fn Branch::to_json(self : Branch) -> Json {
   match self.kind {
-    Some(YArray) | Some(YXmlFragment) =>
-      match self.kind {
-        Some(YXmlFragment) => Json::string(self.to_xml_string())
-        _ => Json::array(type_list_to_array(self).map(v => v.to_json()))
-      }
+    Some(YArray) => Json::array(type_list_to_array(self).map(v => v.to_json()))
+    Some(YXmlFragment) => Json::string(self.to_xml_string())
     Some(YText) => Json::string(self.text_to_string())
     Some(YXmlText) | Some(YXmlElement(_)) => Json::string(self.to_xml_string())
-    Some(YXmlHook(_)) | Some(YMap) | None => {
-      let out : Map[String, Json] = Map([])
-      for key, item in self.map {
-        if !item.deleted() {
-          out[key] = content_last_value(item).to_json()
-        }
+    Some(YXmlHook(_)) | Some(YMap) => self.map_to_json()
+    None =>
+      match self.inferred_kind() {
+        Some(YText) => Json::string(self.text_to_string())
+        Some(YArray) =>
+          Json::array(type_list_to_array(self).map(v => v.to_json()))
+        _ => self.map_to_json()
       }
-      Json::object(out)
+  }
+}
+
+///|
+fn Branch::map_to_json(self : Branch) -> Json {
+  let out : Map[String, Json] = Map([])
+  for key, item in self.map {
+    if !item.deleted() {
+      out[key] = content_last_value(item).to_json()
     }
+  }
+  Json::object(out)
+}
+
+///|
+/// Guesses the kind of an untyped root from its content: list items made of
+/// text runs / format markers suggest Y.Text, other list items Y.Array, keyed
+/// items Y.Map.
+pub fn Branch::inferred_kind(self : Branch) -> TypeRef? {
+  match self.kind {
+    Some(k) => return Some(k)
+    None => ()
+  }
+  let mut n = self.start
+  while n is Some(item) {
+    match item.content {
+      CString(_) | CFormat(_, _) | CEmbed(_) => return Some(YText)
+      CAny(_) | CJson(_) | CBinary(_) | CType(_) | CDoc(_, _) =>
+        return Some(YArray)
+      CDeleted(_) => ()
+    }
+    n = item.right
+  }
+  if self.map.length() > 0 {
+    Some(YMap)
+  } else {
+    None
   }
 }

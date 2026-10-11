@@ -1,0 +1,13 @@
+import {
+  "wangzh12023/ymoon",
+  "wangzh12023/ymoon/lib0",
+  "wangzh12023/ymoon/protocols",
+}
+
+supported_targets = "+js"
+
+pkgtype(kind: "foreign_library")
+
+options(
+  link: { "js": { "format": "esm" } },
+)

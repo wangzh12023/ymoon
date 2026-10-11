@@ -36,3 +36,9 @@ pub extend JsonError with Eq::{not_equal}
 #deprecated("Use `Repr(x)` instead", skip_current_package=true)
 #doc(hidden)
 pub extend JsonError with @debug.Debug::{to_repr}
+
+///|
+pub extend DecodeError with Show::{to_string}
+
+///|
+pub extend JsonError with Show::{to_string}

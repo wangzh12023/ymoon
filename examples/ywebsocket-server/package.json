@@ -1,0 +1,12 @@
+{
+  "name": "ymoon-ywebsocket-server",
+  "private": true,
+  "type": "module",
+  "description": "y-websocket compatible server powered by ymoon (MoonBit compiled to JS)",
+  "scripts": {
+    "start": "node server.mjs 1234"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

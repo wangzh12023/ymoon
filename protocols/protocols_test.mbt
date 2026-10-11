@@ -107,3 +107,60 @@ test "awareness: local state, remote update, timeout" {
   // "ws" added alice, then "timeout" removed her
   inspect(changes.length(), content="2")
 }
+
+///|
+test "room: two clients converge through the server" {
+  let hub = @protocols.Hub()
+  let room = hub.room("demo")
+  // two client documents talking to the room through in-memory queues
+  let alice = @ymoon.Doc(client_id=101)
+  let bob = @ymoon.Doc(client_id=202)
+  let to_alice : Array[Bytes] = []
+  let to_bob : Array[Bytes] = []
+  room.connect(1, b => to_alice.push(b))
+  room.connect(2, b => to_bob.push(b))
+  fn pump(doc : @ymoon.Doc, inbox : Array[Bytes], conn : Int) raise {
+    while inbox.length() > 0 {
+      let msg = inbox.remove(0)
+      match @protocols.Message::decode(msg) {
+        Sync(m) =>
+          match @protocols.handle_sync_message(doc, m) {
+            Some(reply) =>
+              room.receive(conn, @protocols.Message::Sync(reply).encode())
+            None => ()
+          }
+        _ => ()
+      }
+    }
+  }
+
+  // each client forwards its local updates to the room
+  alice.on_update((u, origin) => {
+    if origin != "remote" {
+      room.receive(1, @protocols.Message::Sync(Update(u)).encode()) catch {
+        _ => ()
+      }
+    }
+  })
+  bob.on_update((u, origin) => {
+    if origin != "remote" {
+      room.receive(2, @protocols.Message::Sync(Update(u)).encode()) catch {
+        _ => ()
+      }
+    }
+  })
+  pump(alice, to_alice, 1)
+  pump(bob, to_bob, 2)
+  alice.get_text("doc").insert(0, "Hello ")
+  bob.get_text("doc").insert(0, "World")
+  pump(alice, to_alice, 1)
+  pump(bob, to_bob, 2)
+  assert_eq(alice.get_text("doc").to_string(), bob.get_text("doc").to_string())
+  assert_eq(
+    room.doc.get_text("doc").to_string(),
+    alice.get_text("doc").to_string(),
+  )
+  inspect(room.connection_count(), content="2")
+  room.disconnect(1)
+  inspect(room.connection_count(), content="1")
+}

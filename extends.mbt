@@ -78,3 +78,6 @@ pub extend DecodedStruct with Eq::{not_equal}
 #deprecated("Use `Repr(x)` instead", skip_current_package=true)
 #doc(hidden)
 pub extend DecodedStruct with @debug.Debug::{to_repr}
+
+///|
+pub extend TypeError with Show::{to_string}

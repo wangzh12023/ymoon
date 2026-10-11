@@ -3,6 +3,7 @@ import {
   "wangzh12023/ymoon/lib0",
   "moonbitlang/core/debug",
   "moonbitlang/core/env",
+  "moonbitlang/core/string",
 }
 
 import {
