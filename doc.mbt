@@ -23,7 +23,12 @@ pub struct Branch {
   mut has_formatting : Bool
   /// Index cache (`_searchMarker`); None for types that never use markers.
   priv mut search_markers : Array[SearchMarker]?
+  /// Process-unique identity, used as a cheap map key.
+  priv uid : Int
 }
+
+///|
+let branch_uid_counter : Ref[Int] = Ref(0)
 
 ///|
 fn Branch::new_branch(kind : TypeRef?) -> Branch {
@@ -36,6 +41,10 @@ fn Branch::new_branch(kind : TypeRef?) -> Branch {
     kind,
     has_formatting: false,
     search_markers: initial_markers(kind),
+    uid: {
+      branch_uid_counter.val = branch_uid_counter.val + 1
+      branch_uid_counter.val
+    },
   }
 }
 

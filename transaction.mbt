@@ -13,7 +13,7 @@ pub struct Transaction {
   mut after_state : StateVector
   /// Changed shared types, keyed by `branch_key`, with the changed map keys
   /// (`None` = the list part changed).
-  priv changed : Map[String, (Branch, Array[String?])]
+  priv changed : Map[Int, (Branch, Array[String?])]
   /// Items that may be mergeable with their neighbours after cleanup.
   priv merge_structs : Array[Item]
   /// User supplied origin label.
@@ -24,21 +24,9 @@ pub struct Transaction {
 }
 
 ///|
-/// Identity of a branch usable as a map key: the holding item's ID for
-/// nested types, the root name for root types.
-fn branch_key(b : Branch) -> String {
-  match b.item {
-    Some(it) => "#\{it.id.client}:\{it.id.clock}"
-    None => {
-      let doc = b.doc_or_abort()
-      for name, root in doc.share {
-        if physical_equal(root, b) {
-          return "@" + name
-        }
-      }
-      abort("root branch is not registered in its document")
-    }
-  }
+/// Identity of a branch usable as a map key.
+fn branch_key(b : Branch) -> Int {
+  b.uid
 }
 
 ///|
@@ -159,11 +147,9 @@ fn try_to_merge_with_lefts(structs : Array[Struct], pos : Int) -> Int {
   }
   let merged = pos - i
   if merged > 0 {
-    // remove all merged structs from the array
+    // remove all merged structs from the array in one shift
     let start = pos + 1 - merged
-    for _ in 0..<merged {
-      structs.remove(start) |> ignore
-    }
+    ignore(structs.drain(start, start + merged))
   }
   merged
 }
@@ -244,13 +230,14 @@ fn cleanup_transaction(txn : Transaction) -> Unit {
     cleanup_ytext_after_transaction(txn)
   }
   // Replace deleted items with tombstones / GC structs.
-  if doc.gc {
-    try_gc_delete_set(ds, store)
+  if !ds.is_empty() {
+    if doc.gc {
+      try_gc_delete_set(ds, store)
+    }
+    try_merge_delete_set(ds, store)
   }
-  try_merge_delete_set(ds, store)
-  // on all affected clients, try to merge structs
-  for entry in txn.after_state.entries() {
-    let (client, clock) = entry
+  // on all affected clients, try to merge structs (any client order)
+  for client, clock in txn.after_state.clients {
     let before_clock = txn.before_state.get(client)
     if before_clock != clock {
       let structs = store.structs_of(client)
@@ -301,9 +288,9 @@ fn cleanup_transaction(txn : Transaction) -> Unit {
 fn encode_transaction_update(txn : Transaction) -> Bytes? {
   let mut changed = !txn.delete_set.is_empty()
   if !changed {
-    for entry in txn.after_state.entries() {
-      if txn.before_state.get(entry.0) != entry.1 ||
-        !txn.before_state.contains(entry.0) {
+    for client, clock in txn.after_state.clients {
+      if txn.before_state.get(client) != clock ||
+        !txn.before_state.contains(client) {
         changed = true
         break
       }
