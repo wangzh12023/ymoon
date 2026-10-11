@@ -5,6 +5,7 @@ target
 .mooncakes/
 .moonagent/
 node_modules/
-conformance/out/
+oracle/out/
+dist/
 *.log
 node_modules/

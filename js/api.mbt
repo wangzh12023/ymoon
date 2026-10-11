@@ -425,3 +425,55 @@ pub fn room_to_json(room : Int) -> String {
   }
   Json::object(out).stringify()
 }
+
+///|
+/// Byte-level annotation of an update as JSON:
+/// `[{ "start", "end", "kind", "label" }]`, or `{ "error" }`.
+#export_name("annotate_update")
+pub fn annotate_update_json(update : Bytes) -> String {
+  let segs = @ymoon.annotate_update(update) catch {
+    e => return Json::object({ "error": Json::string("\{e}") }).stringify()
+  }
+  Json::array(
+    segs.map(s => {
+      Json::object({
+        "start": Json::number(s.start.to_double()),
+        "end": Json::number(s.end.to_double()),
+        "kind": Json::string(s.kind.name()),
+        "label": Json::string(s.label),
+      })
+    }),
+  ).stringify()
+}
+
+///|
+/// Plain text length in UTF-16 code units of the root text `name`.
+#export_name("text_length")
+pub fn text_length(h : Int, name : String) -> Int {
+  doc_of(h).get_text(name).length()
+}
+
+///|
+/// Applies a plain-text change (as produced by a textarea edit) to the root
+/// text `name`: delete `del` units at `index`, then insert `ins` there.
+#export_name("text_splice")
+pub fn text_splice(
+  h : Int,
+  name : String,
+  index : Int,
+  del : Int,
+  ins : String,
+) -> String {
+  let t = doc_of(h).get_text(name)
+  doc_of(h).transact(_ => {
+    if del > 0 {
+      t.delete(index, del)
+    }
+    if ins.length() > 0 {
+      t.insert(index, ins)
+    }
+  }) catch {
+    e => return "\{e}"
+  }
+  ""
+}

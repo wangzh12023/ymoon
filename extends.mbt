@@ -81,3 +81,29 @@ pub extend DecodedStruct with @debug.Debug::{to_repr}
 
 ///|
 pub extend TypeError with Show::{to_string}
+
+///|
+pub extend SegmentKind with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead", skip_current_package=true)
+#doc(hidden)
+pub extend SegmentKind with Eq::{not_equal}
+
+///|
+#deprecated("Use `Repr(x)` instead", skip_current_package=true)
+#doc(hidden)
+pub extend SegmentKind with @debug.Debug::{to_repr}
+
+///|
+pub extend Segment with Eq::{equal}
+
+///|
+#deprecated("Use `!=` instead", skip_current_package=true)
+#doc(hidden)
+pub extend Segment with Eq::{not_equal}
+
+///|
+#deprecated("Use `Repr(x)` instead", skip_current_package=true)
+#doc(hidden)
+pub extend Segment with @debug.Debug::{to_repr}

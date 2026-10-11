@@ -1,0 +1,624 @@
+<title>ymoon wire bench</title>
+<meta name="description" content="Live interop between ymoon (Yjs in MoonBit) and the official yjs: every keystroke crosses the wire as a byte-identical update.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a protocol bench. Two peers side by side on top, the wire log and
+   the byte-level decoder of the selected update below. */
+:root {
+  --paper: #f4f6f4;
+  --panel: #ffffff;
+  --ink: #18201c;
+  --ink-soft: #4f5c55;
+  --rule: #d6ddd8;
+  --moon: #1f6f5c;      /* MoonBit peer */
+  --moon-wash: #e1efe9;
+  --yjs: #9a5b00;       /* JavaScript peer */
+  --yjs-wash: #f6ead2;
+  --signal: #6b4fd8;    /* matching bytes */
+  --bad: #b3261e;       /* semantic: mismatch / error */
+  --seg-header: #e8ebe9;
+  --seg-client: #dde7f6;
+  --seg-clock: #e9e2f6;
+  --seg-info: #e6efc9;
+  --seg-origin: #d9efe4;
+  --seg-parent: #f1dfe8;
+  --seg-key: #f7dccf;
+  --seg-content: #dcf0f3;
+  --seg-delete: #f6d9d9;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --step--1: 0.8125rem;
+  --step-0: 0.9375rem;
+  --step-1: 1.125rem;
+  --step-2: 1.5rem;
+  --step-3: 2.125rem;
+  --radius: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #121815;
+    --panel: #1a221e;
+    --ink: #e4ece7;
+    --ink-soft: #9fb0a6;
+    --rule: #2e3a34;
+    --moon: #5cc4a6;
+    --moon-wash: #183129;
+    --yjs: #f0b44c;
+    --yjs-wash: #3a2c14;
+    --signal: #a995ff;
+    --bad: #ff8a80;
+    --seg-header: #262e2a;
+    --seg-client: #1f2c40;
+    --seg-clock: #2c2442;
+    --seg-info: #2e3618;
+    --seg-origin: #1c3a2d;
+    --seg-parent: #3a2232;
+    --seg-key: #40261c;
+    --seg-content: #193a40;
+    --seg-delete: #432325;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #121815;
+  --panel: #1a221e;
+  --ink: #e4ece7;
+  --ink-soft: #9fb0a6;
+  --rule: #2e3a34;
+  --moon: #5cc4a6;
+  --moon-wash: #183129;
+  --yjs: #f0b44c;
+  --yjs-wash: #3a2c14;
+  --signal: #a995ff;
+  --bad: #ff8a80;
+  --seg-header: #262e2a;
+  --seg-client: #1f2c40;
+  --seg-clock: #2c2442;
+  --seg-info: #2e3618;
+  --seg-origin: #1c3a2d;
+  --seg-parent: #3a2232;
+  --seg-key: #40261c;
+  --seg-content: #193a40;
+  --seg-delete: #432325;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  line-height: 1.55;
+  padding-inline: clamp(16px, 4vw, 48px);
+  padding-block: 28px 56px;
+}
+.wrap { max-width: 1180px; margin-inline: auto; display: grid; gap: 28px; }
+
+header.top { display: grid; gap: 10px; }
+.kicker {
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+}
+h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.75rem, 1.2rem + 2.4vw, var(--step-3));
+  line-height: 1.12;
+  margin: 0;
+  text-wrap: balance;
+  max-width: 30ch;
+}
+h1 .m { color: var(--moon); }
+h1 .y { color: var(--yjs); }
+.lede { margin: 0; max-width: 68ch; color: var(--ink-soft); }
+
+.verdict {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px;
+  font-family: var(--font-mono); font-size: var(--step--1);
+  padding: 10px 14px; border: 1px solid var(--rule); border-radius: var(--radius);
+  background: var(--panel);
+}
+.verdict strong { font-family: var(--font-display); font-size: var(--step-1); font-weight: 700; color: var(--signal); }
+.verdict .tick { font-variant-numeric: tabular-nums; }
+.verdict .bad { color: var(--bad); }
+
+.peers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 760px) { .peers { grid-template-columns: 1fr; } }
+
+.peer {
+  background: var(--panel); border: 1px solid var(--rule); border-radius: var(--radius);
+  display: grid; grid-template-rows: auto 1fr auto; min-width: 0;
+}
+.peer-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 14px; border-bottom: 1px solid var(--rule);
+}
+.peer-name { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.peer-name b { font-family: var(--font-display); font-size: var(--step-1); font-weight: 700; }
+.peer.moon .peer-name b { color: var(--moon); }
+.peer.yjs .peer-name b { color: var(--yjs); }
+.peer-name span { font-family: var(--font-mono); font-size: var(--step--1); color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip {
+  font-family: var(--font-mono); font-size: 0.75rem; padding: 2px 8px; border-radius: 99px;
+  white-space: nowrap;
+}
+.peer.moon .chip { background: var(--moon-wash); color: var(--moon); }
+.peer.yjs .chip { background: var(--yjs-wash); color: var(--yjs); }
+.chip.offline { background: var(--seg-header); color: var(--ink-soft); }
+
+textarea {
+  width: 100%; min-height: 168px; resize: vertical; border: 0; outline: none;
+  padding: 14px; background: transparent; color: var(--ink);
+  font-family: var(--font-body); font-size: var(--step-1); line-height: 1.6;
+}
+textarea:focus-visible { box-shadow: inset 0 0 0 2px var(--signal); }
+.peer-foot {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+  padding: 10px 14px; border-top: 1px solid var(--rule);
+  font-family: var(--font-mono); font-size: var(--step--1); color: var(--ink-soft);
+}
+.peer-foot .sv { font-variant-numeric: tabular-nums; }
+.peer-foot label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.peer-foot input { accent-color: var(--signal); }
+
+button {
+  font: inherit; font-family: var(--font-mono); font-size: var(--step--1);
+  border: 1px solid var(--rule); background: var(--panel); color: var(--ink);
+  padding: 5px 10px; border-radius: var(--radius); cursor: pointer;
+}
+button:hover { border-color: var(--ink-soft); }
+button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+
+.lower { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 18px; align-items: start; }
+@media (max-width: 900px) { .lower { grid-template-columns: 1fr; } }
+
+section.card { background: var(--panel); border: 1px solid var(--rule); border-radius: var(--radius); min-width: 0; }
+.card-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 12px 14px; border-bottom: 1px solid var(--rule);
+}
+.card-head h2 { margin: 0; font-family: var(--font-display); font-size: var(--step-1); font-weight: 700; }
+.card-head span { font-family: var(--font-mono); font-size: var(--step--1); color: var(--ink-soft); }
+
+ol.wire { list-style: none; margin: 0; padding: 6px; max-height: 420px; overflow-y: auto; display: grid; gap: 2px; }
+.wire li button {
+  width: 100%; text-align: left; border: 1px solid transparent; background: transparent;
+  display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center;
+  padding: 7px 8px;
+}
+.wire li button:hover { background: var(--paper); }
+.wire li button[aria-pressed="true"] { border-color: var(--signal); background: var(--paper); }
+.dir { font-weight: 500; white-space: nowrap; }
+.dir.from-moon { color: var(--moon); }
+.dir.from-yjs { color: var(--yjs); }
+.what { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.size { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.empty { padding: 18px 14px; color: var(--ink-soft); font-size: var(--step-0); }
+
+.decoder { padding: 14px; display: grid; gap: 14px; }
+.compare {
+  display: grid; grid-template-columns: auto 1fr; gap: 4px 12px;
+  font-family: var(--font-mono); font-size: var(--step--1);
+}
+.compare dt { color: var(--ink-soft); }
+.compare dd { margin: 0; overflow-wrap: anywhere; }
+.same { color: var(--signal); font-weight: 500; }
+.diff { color: var(--bad); font-weight: 500; }
+
+.hex {
+  font-family: var(--font-mono); font-size: 0.875rem; line-height: 1.9;
+  display: flex; flex-wrap: wrap; gap: 2px; overflow-x: auto;
+}
+.hex .seg { display: inline-flex; gap: 0; border-radius: 3px; cursor: default; }
+.hex .seg span { padding: 0 3px; }
+.hex .seg.active { outline: 2px solid var(--signal); }
+.k-header { background: var(--seg-header); }
+.k-client { background: var(--seg-client); }
+.k-clock { background: var(--seg-clock); }
+.k-info { background: var(--seg-info); }
+.k-origin, .k-right-origin { background: var(--seg-origin); }
+.k-parent { background: var(--seg-parent); }
+.k-key { background: var(--seg-key); }
+.k-content { background: var(--seg-content); }
+.k-delete-set { background: var(--seg-delete); }
+
+.fields { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.fields li {
+  display: grid; grid-template-columns: 5.5rem 7.5rem 1fr; gap: 10px; align-items: baseline;
+  padding: 4px 6px; border-radius: 3px; font-size: var(--step--1);
+}
+.fields li:hover, .fields li.active { background: var(--paper); }
+.fields .range { font-family: var(--font-mono); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.fields .kind { font-family: var(--font-mono); }
+.fields .kind i { display: inline-block; width: 0.7em; height: 0.7em; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.fields .label { overflow-wrap: anywhere; }
+@media (max-width: 520px) { .fields li { grid-template-columns: 4.5rem 1fr; } .fields .label { grid-column: 1 / -1; } }
+
+.about { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+.about p { margin: 0; color: var(--ink-soft); max-width: 62ch; font-size: var(--step-0); }
+.about h3 { margin: 0 0 4px; font-family: var(--font-display); font-size: var(--step-0); font-weight: 700; color: var(--ink); }
+code { font-family: var(--font-mono); font-size: 0.9em; }
+
+.status-line { font-family: var(--font-mono); font-size: var(--step--1); color: var(--ink-soft); }
+.status-line.error { color: var(--bad); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .flash { animation: flash 0.9s ease-out; }
+  @keyframes flash { from { background: var(--seg-info); } to { background: transparent; } }
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="kicker">ymoon · Yjs CRDT in MoonBit · yjs v1 wire format</div>
+    <h1><span class="m">MoonBit</span> and <span class="y">JavaScript</span> editing one document, byte for byte.</h1>
+    <p class="lede">The left editor runs ymoon, a MoonBit port of Yjs compiled to JavaScript. The right editor runs the official <code>yjs@13.6.33</code> from npm. Every keystroke becomes a binary update that crosses to the other peer. Both peers also replay every update locally, so the bench can check that MoonBit and JavaScript encode the same edit to the same bytes.</p>
+  </header>
+
+  <div class="verdict" id="verdict" aria-live="polite">
+    <strong id="verdict-main">Loading peers…</strong>
+    <span class="tick" id="verdict-detail"></span>
+  </div>
+
+  <div class="peers">
+    <article class="peer moon" aria-labelledby="moon-title">
+      <div class="peer-head">
+        <div class="peer-name"><b id="moon-title">ymoon</b><span>MoonBit → JS · client <span id="moon-client">1</span></span></div>
+        <span class="chip" id="moon-chip">online</span>
+      </div>
+      <textarea id="moon-text" spellcheck="false" aria-label="Text edited by the MoonBit peer"></textarea>
+      <div class="peer-foot">
+        <span class="sv" id="moon-sv">state vector {}</span>
+        <label for="moon-online"><input type="checkbox" id="moon-online" checked> connected</label>
+      </div>
+    </article>
+
+    <article class="peer yjs" aria-labelledby="yjs-title">
+      <div class="peer-head">
+        <div class="peer-name"><b id="yjs-title">yjs</b><span>npm yjs@13.6.33 · client <span id="yjs-client">2</span></span></div>
+        <span class="chip" id="yjs-chip">online</span>
+      </div>
+      <textarea id="yjs-text" spellcheck="false" aria-label="Text edited by the JavaScript peer"></textarea>
+      <div class="peer-foot">
+        <span class="sv" id="yjs-sv">state vector {}</span>
+        <label for="yjs-online"><input type="checkbox" id="yjs-online" checked> connected</label>
+      </div>
+    </article>
+  </div>
+
+  <div class="lower">
+    <section class="card" aria-labelledby="wire-title">
+      <div class="card-head"><h2 id="wire-title">Wire</h2><span id="wire-count">0 updates</span></div>
+      <ol class="wire" id="wire"></ol>
+    </section>
+
+    <section class="card" aria-labelledby="dec-title">
+      <div class="card-head"><h2 id="dec-title">Update decoder</h2><span id="dec-sub">select an update</span></div>
+      <div class="decoder" id="decoder">
+        <p class="empty" id="dec-empty">Pick an update from the wire to see every byte labelled by the ymoon decoder, next to the bytes yjs produces for the same edit.</p>
+        <dl class="compare" id="compare" hidden>
+          <dt>sender</dt><dd id="cmp-sender"></dd>
+          <dt>ymoon bytes</dt><dd id="cmp-moon"></dd>
+          <dt>yjs bytes</dt><dd id="cmp-yjs"></dd>
+          <dt>verdict</dt><dd id="cmp-verdict"></dd>
+        </dl>
+        <div class="hex" id="hex" aria-label="Annotated update bytes"></div>
+        <ul class="fields" id="fields"></ul>
+      </div>
+    </section>
+  </div>
+
+  <div class="about">
+    <div><h3>What the bytes mean</h3><p>An update lists new structs per client (an info byte with the content kind, origins as <code>client:clock</code> IDs, the parent type, the content) followed by a delete set of clock ranges. Hover a field to find its bytes.</p></div>
+    <div><h3>How the check works</h3><p>Each local edit is replayed on a shadow document of the other implementation that has the same client id and the same history. ymoon and yjs then encode the edit, and the bench compares the two byte strings.</p></div>
+    <div><h3>Try offline editing</h3><p>Untick <em>connected</em> on one peer, type on both sides, then reconnect. The peers exchange state vectors and send each other only the missing structs, then converge.</p></div>
+  </div>
+  <p class="status-line" id="status"></p>
+</div>
+
+<script type="module">
+/* YMOON_BUNDLE */
+const ymoon = __ymoon
+
+const statusEl = document.getElementById('status')
+function setStatus (msg, isError = false) {
+  statusEl.textContent = msg
+  statusEl.classList.toggle('error', isError)
+}
+
+let Y
+try {
+  Y = await import('https://cdn.jsdelivr.net/npm/yjs@13.6.33/+esm')
+} catch (e) {
+  setStatus('Could not load yjs from jsDelivr, so the JavaScript peer is unavailable: ' + e.message, true)
+}
+
+const hex = u8 => Array.from(u8, b => b.toString(16).padStart(2, '0')).join('')
+const NAME = 'doc'
+const MOON_ID = 1
+const YJS_ID = 2
+
+// --- the two live peers -------------------------------------------------
+const moonDoc = ymoon.doc_new(MOON_ID)
+let yDoc = null
+let yText = null
+if (Y) {
+  yDoc = new Y.Doc()
+  yDoc.clientID = YJS_ID
+  yText = yDoc.getText(NAME)
+}
+
+// shadows: same client id and history as the opposite peer, other engine
+const shadowMoonOfYjs = ymoon.doc_new(YJS_ID) // ymoon replaying yjs-side edits
+let shadowYjsOfMoon = null                     // yjs replaying ymoon-side edits
+if (Y) {
+  shadowYjsOfMoon = new Y.Doc()
+  shadowYjsOfMoon.clientID = MOON_ID
+}
+
+const moonArea = document.getElementById('moon-text')
+const yjsArea = document.getElementById('yjs-text')
+const moonOnline = document.getElementById('moon-online')
+const yjsOnline = document.getElementById('yjs-online')
+
+const wire = []
+let selected = -1
+let matches = 0
+let compared = 0
+
+function svText (pairs) {
+  if (!pairs.length) return 'state vector {}'
+  return 'state vector {' + pairs.map(([c, k]) => c + ':' + k).join(', ') + '}'
+}
+function decodeSv (bytes) {
+  // tiny varint reader for display only
+  let p = 0
+  const rd = () => { let n = 0; let m = 1; for (;;) { const b = bytes[p++]; n += (b & 127) * m; m *= 128; if (b < 128) return n } }
+  const len = rd(); const out = []
+  for (let i = 0; i < len; i++) out.push([rd(), rd()])
+  return out.sort((a, b) => a[0] - b[0])
+}
+function refreshMeta () {
+  document.getElementById('moon-sv').textContent = svText(decodeSv(ymoon.doc_encode_state_vector(moonDoc)))
+  if (Y) document.getElementById('yjs-sv').textContent = svText(decodeSv(Y.encodeStateVector(yDoc)).sort((a, b) => a[0] - b[0]))
+  const chip = (el, on) => { el.textContent = on ? 'online' : 'offline'; el.classList.toggle('offline', !on) }
+  chip(document.getElementById('moon-chip'), moonOnline.checked)
+  chip(document.getElementById('yjs-chip'), yjsOnline.checked)
+  const main = document.getElementById('verdict-main')
+  const detail = document.getElementById('verdict-detail')
+  const same = Y && ymoon.text_to_string(moonDoc, NAME) === yText.toString()
+  if (!Y) {
+    main.textContent = 'ymoon peer only'
+    detail.textContent = 'the yjs peer needs network access to jsDelivr'
+  } else {
+    main.textContent = same ? 'Documents converged' : 'Documents differ'
+    main.classList.toggle('bad', !same)
+    const offline = !(moonOnline.checked && yjsOnline.checked)
+    detail.innerHTML = `${compared ? `${matches}/${compared} updates byte-identical across engines` : 'no updates yet'}${offline ? ' · <span>a peer is offline, sync resumes on reconnect</span>' : ''}`
+  }
+}
+
+// --- textarea diffing ----------------------------------------------------
+function splice (before, after) {
+  let start = 0
+  while (start < before.length && start < after.length && before[start] === after[start]) start++
+  let endB = before.length; let endA = after.length
+  while (endB > start && endA > start && before[endB - 1] === after[endA - 1]) { endB--; endA-- }
+  return { index: start, del: endB - start, ins: after.slice(start, endA) }
+}
+function setAreaKeepingCaret (area, text) {
+  if (area.value === text) return
+  const focused = document.activeElement === area
+  const { selectionStart, selectionEnd } = area
+  const before = area.value
+  area.value = text
+  if (focused) {
+    const d = splice(before, text)
+    const shift = pos => pos <= d.index ? pos : Math.max(d.index, pos - d.del) + d.ins.length
+    area.setSelectionRange(shift(selectionStart), shift(selectionEnd))
+  }
+}
+
+// --- the wire ------------------------------------------------------------
+const pending = { moon: [], yjs: [] } // updates waiting while a side is offline
+
+// Delivers an update to the receiving peer. Each shadow mirrors one peer's
+// history in the other engine, so it receives exactly what that peer receives.
+function deliver (from, bytes) {
+  if (from === 'moon') {
+    if (!Y) return
+    Y.applyUpdate(yDoc, bytes, 'remote')
+    setAreaKeepingCaret(yjsArea, yText.toString())
+    ymoon.doc_apply_update(shadowMoonOfYjs, bytes)
+    ymoon.doc_take_updates(shadowMoonOfYjs)
+  } else {
+    ymoon.doc_apply_update(moonDoc, bytes)
+    ymoon.doc_take_updates(moonDoc)
+    setAreaKeepingCaret(moonArea, ymoon.text_to_string(moonDoc, NAME))
+    if (Y) Y.applyUpdate(shadowYjsOfMoon, bytes, 'remote')
+  }
+}
+
+function record (entry) {
+  wire.push(entry)
+  renderWire()
+  select(wire.length - 1)
+}
+
+function send (from, bytes, what, twin) {
+  const online = moonOnline.checked && yjsOnline.checked
+  if (twin) { compared++; if (twin.same) matches++ }
+  record({ from, bytes, what, twin, queued: !online })
+  if (online) deliver(from, bytes)
+  else pending[from].push(bytes)
+  refreshMeta()
+}
+
+function describeEdit (d) {
+  const parts = []
+  if (d.del) parts.push(`delete ${d.del}`)
+  if (d.ins) parts.push(`insert "${d.ins.length > 18 ? d.ins.slice(0, 18) + '…' : d.ins}"`)
+  return `${parts.join(', ')} at ${d.index}`
+}
+
+moonArea.addEventListener('input', () => {
+  const before = ymoon.text_to_string(moonDoc, NAME)
+  const d = splice(before, moonArea.value)
+  if (!d.del && !d.ins) return
+  const err = ymoon.text_splice(moonDoc, NAME, d.index, d.del, d.ins)
+  if (err) { setStatus('ymoon rejected the edit: ' + err, true); return }
+  const bytes = ymoon.doc_take_updates(moonDoc)
+  let twin = null
+  if (Y) {
+    // the same edit on a yjs document with ymoon's client id and history
+    let shadowBytes = null
+    const h = u => { shadowBytes = u }
+    shadowYjsOfMoon.on('update', h)
+    const t = shadowYjsOfMoon.getText(NAME)
+    shadowYjsOfMoon.transact(() => { if (d.del) t.delete(d.index, d.del); if (d.ins) t.insert(d.index, d.ins) })
+    shadowYjsOfMoon.off('update', h)
+    twin = { engine: 'yjs', bytes: shadowBytes, same: shadowBytes && hex(shadowBytes) === hex(bytes) }
+  }
+  send('moon', bytes, describeEdit(d), twin)
+})
+
+if (Y) {
+  yjsArea.addEventListener('input', () => {
+    const before = yText.toString()
+    const d = splice(before, yjsArea.value)
+    if (!d.del && !d.ins) return
+    let bytes = null
+    const h = (u, origin) => { if (origin !== 'remote') bytes = u }
+    yDoc.on('update', h)
+    yDoc.transact(() => { if (d.del) yText.delete(d.index, d.del); if (d.ins) yText.insert(d.index, d.ins) })
+    yDoc.off('update', h)
+    // the same edit on a ymoon document with yjs' client id and history
+    const err = ymoon.text_splice(shadowMoonOfYjs, NAME, d.index, d.del, d.ins)
+    const shadowBytes = err ? null : ymoon.doc_take_updates(shadowMoonOfYjs)
+    const twin = { engine: 'ymoon', bytes: shadowBytes, same: !!shadowBytes && hex(shadowBytes) === hex(bytes) }
+    send('yjs', bytes, describeEdit(d), twin)
+  })
+} else {
+  yjsArea.disabled = true
+  yjsArea.placeholder = 'yjs could not be loaded'
+}
+
+function reconnect () {
+  const online = moonOnline.checked && yjsOnline.checked
+  refreshMeta()
+  if (!online || !Y) return
+  pending.moon = []; pending.yjs = []
+  // sync step 1 / step 2 in both directions
+  const svMoon = ymoon.doc_encode_state_vector(moonDoc)
+  const svYjs = Y.encodeStateVector(yDoc)
+  const toYjs = ymoon.doc_encode_state_as_update(moonDoc, svYjs)
+  const toMoon = Y.encodeStateAsUpdate(yDoc, svMoon)
+  record({ from: 'moon', bytes: toYjs, what: 'sync step 2 (missing structs)', twin: null, queued: false })
+  deliver('moon', toYjs)
+  record({ from: 'yjs', bytes: toMoon, what: 'sync step 2 (missing structs)', twin: null, queued: false })
+  deliver('yjs', toMoon)
+  refreshMeta()
+}
+moonOnline.addEventListener('change', reconnect)
+yjsOnline.addEventListener('change', reconnect)
+
+// --- rendering -----------------------------------------------------------
+const wireEl = document.getElementById('wire')
+function renderWire () {
+  document.getElementById('wire-count').textContent = `${wire.length} update${wire.length === 1 ? '' : 's'}`
+  if (!wire.length) {
+    wireEl.innerHTML = '<li class="empty">Type in either editor. Each change appears here as one binary update.</li>'
+    return
+  }
+  wireEl.innerHTML = ''
+  wire.forEach((w, i) => {
+    const li = document.createElement('li')
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.setAttribute('aria-pressed', String(i === selected))
+    const arrow = w.from === 'moon' ? 'ymoon → yjs' : 'yjs → ymoon'
+    b.innerHTML = `<span class="dir from-${w.from}">${arrow}</span><span class="what"></span><span class="size">${w.bytes.length} B${w.queued ? ' · queued' : ''}</span>`
+    b.querySelector('.what').textContent = w.what
+    b.addEventListener('click', () => select(i))
+    li.appendChild(b)
+    wireEl.appendChild(li)
+  })
+  wireEl.scrollTop = wireEl.scrollHeight
+}
+
+function select (i) {
+  selected = i
+  for (const [j, el] of [...wireEl.querySelectorAll('button')].entries()) el.setAttribute('aria-pressed', String(j === i))
+  const w = wire[i]
+  if (!w) return
+  document.getElementById('dec-empty').hidden = true
+  document.getElementById('compare').hidden = false
+  document.getElementById('dec-sub').textContent = `${w.bytes.length} bytes`
+  document.getElementById('cmp-sender').textContent = w.from === 'moon' ? 'ymoon (MoonBit), client 1' : 'yjs (JavaScript), client 2'
+  const own = hex(w.bytes)
+  document.getElementById(w.from === 'moon' ? 'cmp-moon' : 'cmp-yjs').textContent = own
+  const other = w.twin && w.twin.bytes ? hex(w.twin.bytes) : null
+  document.getElementById(w.from === 'moon' ? 'cmp-yjs' : 'cmp-moon').textContent = other ?? (w.twin ? 'not available' : 'sync message (not replayed)')
+  const v = document.getElementById('cmp-verdict')
+  if (!w.twin) { v.textContent = 'state diff computed from state vectors'; v.className = '' }
+  else if (w.twin.same) { v.textContent = 'byte-identical across engines'; v.className = 'same' }
+  else { v.textContent = 'bytes differ'; v.className = 'diff' }
+
+  const segs = JSON.parse(ymoon.annotate_update(w.bytes))
+  const hexEl = document.getElementById('hex')
+  const fieldsEl = document.getElementById('fields')
+  hexEl.innerHTML = ''; fieldsEl.innerHTML = ''
+  if (segs.error) { hexEl.textContent = segs.error; return }
+  segs.forEach((s, k) => {
+    const seg = document.createElement('span')
+    seg.className = `seg k-${s.kind}`
+    seg.dataset.k = k
+    seg.title = s.label
+    for (let b = s.start; b < s.end; b++) {
+      const sp = document.createElement('span')
+      sp.textContent = w.bytes[b].toString(16).padStart(2, '0')
+      seg.appendChild(sp)
+    }
+    hexEl.appendChild(seg)
+    const li = document.createElement('li')
+    li.dataset.k = k
+    li.innerHTML = `<span class="range">${s.start}–${s.end - 1}</span><span class="kind"><i class="k-${s.kind}"></i>${s.kind}</span><span class="label"></span>`
+    li.querySelector('.label').textContent = s.label
+    fieldsEl.appendChild(li)
+    const on = flag => () => {
+      hexEl.querySelector(`.seg[data-k="${k}"]`)?.classList.toggle('active', flag)
+      fieldsEl.querySelector(`li[data-k="${k}"]`)?.classList.toggle('active', flag)
+    }
+    for (const el of [seg, li]) { el.addEventListener('mouseenter', on(true)); el.addEventListener('mouseleave', on(false)) }
+  })
+}
+
+// --- seed a realistic starting state --------------------------------------
+function typeInto (area, text) {
+  for (const ch of text) {
+    area.value = area.value + ch
+    area.dispatchEvent(new Event('input'))
+  }
+}
+document.getElementById('moon-client').textContent = MOON_ID
+document.getElementById('yjs-client').textContent = YJS_ID
+renderWire()
+moonArea.value = ''
+typeInto(moonArea, 'MoonBit says hello. ')
+if (Y) {
+  yjsArea.value = yText.toString()
+  // insert at the front from the JavaScript side
+  yjsArea.value = 'yjs waves back! ' + yjsArea.value
+  yjsArea.dispatchEvent(new Event('input'))
+}
+refreshMeta()
+setStatus(Y ? 'Both peers are running in this page. Edits stay in your browser.' : '')
+</script>
