@@ -1,0 +1,26 @@
+predicate missing_offset_ok(clock : Int, len : Int, known : Int, result : Option[Int]) {
+  match result {
+    None => mle(madd(m(clock), m(len)), m(known))
+    Some(off) =>
+      mlt(m(known), madd(m(clock), m(len))) &&
+      0 <= off &&
+      off < len &&
+      (known <= clock → off == 0) &&
+      (clock < known → mle(m(known), madd(m(clock), m(off))) && mle(madd(m(clock), m(off)), m(known)))
+  }
+}
+
+predicate merge_ranges_ok(a : Int, alen : Int, b : Int, blen : Int, result : Option[(Int, Int)]) {
+  match result {
+    None => mlt(madd(m(a), m(alen)), m(b))
+    Some((start, len)) =>
+      start == a &&
+      // contains the first range
+      mle(madd(m(a), m(alen)), madd(m(start), m(len))) &&
+      // contains the second range
+      mle(madd(m(b), m(blen)), madd(m(start), m(len))) &&
+      // and nothing beyond the union
+      (meq(madd(m(start), m(len)), madd(m(a), m(alen))) ||
+        meq(madd(m(start), m(len)), madd(m(b), m(blen))))
+  }
+}

@@ -547,7 +547,9 @@ fn integrate_structs(
                   }
                   Skip(_) => ()
                 }
-                state[head_id.client] = head_id.clock + stack_head.len()
+                // re-read id and length: integrating with an offset moved
+                // the struct's start clock and shortened it
+                state[head_id.client] = stack_head.end_clock()
               }
           }
         }

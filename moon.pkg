@@ -1,5 +1,6 @@
 import {
   "wangzh12023/ymoon/lib0",
+  "wangzh12023/ymoon/verified",
   "moonbitlang/core/debug",
   "moonbitlang/core/json",
   "moonbitlang/core/hashset",
@@ -10,5 +11,6 @@ import {
 
 import {
   "moonbitlang/core/quickcheck",
+  "moonbitlang/core/cmp",
   "wangzh12023/ymoon/lib0",
 } for "test"

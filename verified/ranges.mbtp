@@ -1,0 +1,58 @@
+predicate in_bounds(xs : FixedArray[Int], i : Int) {
+  (0 <= i) && (i < xs.length())
+}
+
+// Mathematical end of range `i` (cannot overflow).
+fn end_of(starts : FixedArray[Int], lens : FixedArray[Int], i : Int) -> MathInt {
+  madd(m(starts[i]), m(lens[i]))
+}
+
+// Sorted, disjoint, non-empty clock ranges.
+predicate valid_ranges(starts : FixedArray[Int], lens : FixedArray[Int]) {
+  starts.length() == lens.length() &&
+  (∀ i : Int, in_bounds(starts, i) → 0 <= starts[i] && 0 < lens[i]) &&
+  (∀ i : Int, ∀ j : Int,
+    in_bounds(starts, i) && in_bounds(starts, j) && i < j →
+      mle(end_of(starts, lens, i), m(starts[j])))
+}
+
+predicate covers(starts : FixedArray[Int], lens : FixedArray[Int], i : Int, clock : Int) {
+  in_bounds(starts, i) && starts[i] <= clock && mlt(m(clock), end_of(starts, lens, i))
+}
+
+predicate find_range_ok(
+  starts : FixedArray[Int],
+  lens : FixedArray[Int],
+  clock : Int,
+  result : Option[Int],
+) {
+  match result {
+    Some(i) => covers(starts, lens, i, clock)
+    None => ∀ i : Int, in_bounds(starts, i) → !covers(starts, lens, i, clock)
+  }
+}
+
+///|
+lemma starts_increasing(
+  starts : FixedArray[Int],
+  lens : FixedArray[Int],
+  i : Int,
+  j : Int,
+) where {
+  proof_require: valid_ranges(starts, lens),
+  proof_require: in_bounds(starts, i),
+  proof_require: in_bounds(starts, j),
+  proof_require: i < j,
+  proof_ensure: starts[i] < starts[j],
+} {
+  proof_assert mle(end_of(starts, lens, i), m(starts[j]))
+}
+
+
+predicate adjacent_ordered(starts : FixedArray[Int], lens : FixedArray[Int], n : Int) {
+  ∀ k : Int, 0 < k && k < n → mle(end_of(starts, lens, k - 1), m(starts[k]))
+}
+
+predicate positive_lengths(starts : FixedArray[Int], lens : FixedArray[Int], n : Int) {
+  ∀ k : Int, 0 <= k && k < n → 0 <= starts[k] && 0 < lens[k]
+}

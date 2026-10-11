@@ -1,0 +1,14 @@
+#proof_import("moonbit_builtin_prelude.Int")
+fn m(self : Int) -> MathInt = "model"
+
+#proof_import("int.Int")
+fn madd(a : MathInt, b : MathInt) -> MathInt = "(+)"
+
+#proof_import("int.Int")
+fn mle(a : MathInt, b : MathInt) -> Bool = "(<=)"
+
+#proof_import("int.Int")
+fn mlt(a : MathInt, b : MathInt) -> Bool = "(<)"
+
+#proof_import("int.Int")
+fn meq(a : MathInt, b : MathInt) -> Bool = "(=)"

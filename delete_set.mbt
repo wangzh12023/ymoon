@@ -87,30 +87,25 @@ pub fn DeleteSet::sort_and_merge(self : DeleteSet) -> Unit {
 
 ///|
 /// Whether `id` is covered by the (sorted) delete set (`isDeleted`).
+///
+/// The lookup runs `@verified.find_range`, whose correctness (result covers
+/// the clock, `None` means no range does, no overflow) is machine-checked
+/// with `moon prove`. Its precondition is established at runtime by the
+/// proved-sound `@verified.check_ranges`; unnormalised sets fall back to a
+/// linear scan.
 pub fn DeleteSet::contains(self : DeleteSet, id : ID) -> Bool {
   match self.clients.get(id.client) {
     None => false
-    Some(dis) => find_index_ds(dis, id.clock) is Some(_)
-  }
-}
-
-///|
-fn find_index_ds(dis : Array[DeleteItem], clock : Int) -> Int? {
-  let mut left = 0
-  let mut right = dis.length() - 1
-  while left <= right {
-    let mid_index = (left + right) / 2
-    let mid = dis[mid_index]
-    if mid.clock <= clock {
-      if clock < mid.clock + mid.len {
-        return Some(mid_index)
+    Some(dis) => {
+      let starts = FixedArray::makei(dis.length(), i => dis[i].clock)
+      let lens = FixedArray::makei(dis.length(), i => dis[i].len)
+      if @verified.check_ranges(starts, lens) {
+        @verified.find_range(starts, lens, id.clock) is Some(_)
+      } else {
+        dis.iter().any(d => d.clock <= id.clock && id.clock - d.clock < d.len)
       }
-      left = mid_index + 1
-    } else {
-      right = mid_index - 1
     }
   }
-  None
 }
 
 ///|
