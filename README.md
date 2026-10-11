@@ -9,7 +9,7 @@
 | | |
 |---|---|
 | Wire compatibility | 6,000 randomized multi-peer sessions recorded with `yjs@13.6.33`, replayed by ymoon: every emitted update, state vector, sync diff and final document state is **byte-identical** (about 490,000 byte-level comparisons) |
-| Real clients | 4 official `y-websocket` clients (npm) edit text, formatting, maps and arrays through a server whose room logic is ymoon |
+| Real clients | 4 official `y-websocket` clients (npm) edit text, formatting, maps and arrays through a native MoonBit server (`moonbitlang/async`) and through the same logic compiled to JS |
 | Formal verification | the clock-range core (delete-set lookup, sync offsets, range merging) is proved with `moon prove` in the bounded machine-integer model: 46 proof goals, no overflow |
 | Property tests | convergence, commutativity, idempotence, `merge_updates` and `diff_update` laws on all four backends |
 | Real workload | the automerge-paper editing trace (259,778 keystrokes) produces the same 223,414-byte document as yjs |
@@ -26,11 +26,12 @@ moon add wangzh12023/ymoon
 
 Add the packages you need to your `moon.pkg`:
 
-```moonbit
+```moonbit nocheck
+///|
 import {
   "wangzh12023/ymoon",
-  "wangzh12023/ymoon/lib0",       // lib0 binary encoding and JS-compatible JSON
-  "wangzh12023/ymoon/protocols",  // sync, awareness, y-websocket rooms
+  "wangzh12023/ymoon/lib0", // lib0 binary encoding and JS-compatible JSON
+  "wangzh12023/ymoon/protocols", // sync, awareness, y-websocket rooms
 }
 ```
 
@@ -145,12 +146,25 @@ test "a y-websocket room" {
   // a client sends its edits as a y-websocket sync message
   let client = @ymoon.Doc(client_id=42)
   client.get_text("content").insert(0, "from the browser")
-  room.receive(1, @protocols.Message::Sync(Update(client.encode_state_as_update())).encode())
+  room.receive(
+    1,
+    @protocols.Message::Sync(Update(client.encode_state_as_update())).encode(),
+  )
   inspect(room.doc.get_text("content").to_string(), content="from the browser")
 }
 ```
 
-`examples/ywebsocket-server` wraps a `Room` in a Node.js WebSocket server. Run it and point any y-websocket based editor at it:
+Two servers are included:
+
+- **`server/`**: a native MoonBit server on `moonbitlang/async` (HTTP + WebSocket), no JavaScript involved. CI builds it on Linux and runs four official `y-websocket` clients against it (`oracle/e2e-native-server.mjs`).
+
+  ```sh
+  moon -C server run main --target native -- 1234
+  ```
+
+- **`examples/ywebsocket-server`**: the same `Room` compiled to JavaScript behind Node.js sockets, for hosts without a native toolchain.
+
+Point any y-websocket based editor at `ws://localhost:1234/<room>`. To run the Node.js variant:
 
 ```sh
 moon build --target js --release

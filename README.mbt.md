@@ -9,7 +9,7 @@
 | | |
 |---|---|
 | Wire compatibility | 6,000 randomized multi-peer sessions recorded with `yjs@13.6.33`, replayed by ymoon: every emitted update, state vector, sync diff and final document state is **byte-identical** (about 490,000 byte-level comparisons) |
-| Real clients | 4 official `y-websocket` clients (npm) edit text, formatting, maps and arrays through a server whose room logic is ymoon |
+| Real clients | 4 official `y-websocket` clients (npm) edit text, formatting, maps and arrays through a native MoonBit server (`moonbitlang/async`) and through the same logic compiled to JS |
 | Formal verification | the clock-range core (delete-set lookup, sync offsets, range merging) is proved with `moon prove` in the bounded machine-integer model: 46 proof goals, no overflow |
 | Property tests | convergence, commutativity, idempotence, `merge_updates` and `diff_update` laws on all four backends |
 | Real workload | the automerge-paper editing trace (259,778 keystrokes) produces the same 223,414-byte document as yjs |
@@ -154,7 +154,17 @@ test "a y-websocket room" {
 }
 ```
 
-`examples/ywebsocket-server` wraps a `Room` in a Node.js WebSocket server. Run it and point any y-websocket based editor at it:
+Two servers are included:
+
+- **`server/`**: a native MoonBit server on `moonbitlang/async` (HTTP + WebSocket), no JavaScript involved. CI builds it on Linux and runs four official `y-websocket` clients against it (`oracle/e2e-native-server.mjs`).
+
+  ```sh
+  moon -C server run main --target native -- 1234
+  ```
+
+- **`examples/ywebsocket-server`**: the same `Room` compiled to JavaScript behind Node.js sockets, for hosts without a native toolchain.
+
+Point any y-websocket based editor at `ws://localhost:1234/<room>`. To run the Node.js variant:
 
 ```sh
 moon build --target js --release
