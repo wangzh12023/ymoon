@@ -130,7 +130,7 @@ fn Item::get_missing(
         match store.find(pid) {
           Item(pi) =>
             match pi.content {
-              Type(b) => self.parent = Branch(b)
+              CType(b) => self.parent = Branch(b)
               _ => self.parent = Gone
             }
           _ => self.parent = Gone
@@ -306,15 +306,15 @@ fn item_opt_same(a : Item?, b : Item?) -> Bool {
 /// Content-specific integration hook (`content.integrate`).
 fn Item::content_integrate(self : Item, txn : Transaction) -> Unit {
   match self.content {
-    Deleted(n) => {
+    CDeleted(n) => {
       txn.delete_set.add(self.id.client, self.id.clock, n)
       self.mark_deleted()
     }
-    Type(b) => {
+    CType(b) => {
       b.doc = Some(txn.doc)
       b.item = Some(self)
     }
-    Format(_, _) =>
+    CFormat(_, _) =>
       match self.parent {
         Branch(b) => {
           b.search_markers = None
@@ -340,7 +340,7 @@ fn Item::delete(self : Item, txn : Transaction) -> Unit {
   txn.delete_set.add(self.id.client, self.id.clock, self.len)
   txn.add_changed_type(parent, self.parent_sub)
   match self.content {
-    Type(b) => {
+    CType(b) => {
       // delete all children of a deleted shared type
       let mut it = b.start
       while it is Some(child) {
@@ -369,7 +369,7 @@ fn Item::delete(self : Item, txn : Transaction) -> Unit {
 fn Item::gc(self : Item, store : StructStore, parent_gcd : Bool) -> Unit {
   guard self.deleted() else { abort("gc of a non-deleted item") }
   match self.content {
-    Type(b) => {
+    CType(b) => {
       let mut it = b.start
       while it is Some(child) {
         child.gc(store, true)
@@ -390,7 +390,7 @@ fn Item::gc(self : Item, store : StructStore, parent_gcd : Bool) -> Unit {
   if parent_gcd {
     store.replace_struct(Item(self), GC({ id: self.id, len: self.len, }))
   } else {
-    self.content = Deleted(self.len)
+    self.content = CDeleted(self.len)
   }
 }
 

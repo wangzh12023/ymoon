@@ -17,15 +17,21 @@ const BITS5 : Int = 0x1f
 /// Writes a content payload (`AbstractContent.write`) starting at `offset`.
 fn write_content(enc : @lib0.Encoder, content : Content, offset : Int) -> Unit {
   match content {
-    Deleted(n) => enc.write_var_uint(n - offset)
-    JSON(xs) => {
+    CDeleted(n) => enc.write_var_uint(n - offset)
+    CJson(xs) => {
       enc.write_var_uint(xs.length() - offset)
       for i in offset..<xs.length() {
-        enc.write_var_string(xs[i])
+        enc.write_var_string(
+          if xs[i] is Undefined {
+            "undefined"
+          } else {
+            xs[i].to_json_string()
+          },
+        )
       }
     }
-    Binary(b) => enc.write_var_bytes(b)
-    String(s) =>
+    CBinary(b) => enc.write_var_bytes(b)
+    CString(s) =>
       enc.write_var_string(
         if offset == 0 {
           s
@@ -33,12 +39,12 @@ fn write_content(enc : @lib0.Encoder, content : Content, offset : Int) -> Unit {
           s.unsafe_substring(start=offset, end=s.length())
         },
       )
-    Embed(json) => enc.write_var_string(json)
-    Format(key, json) => {
+    CEmbed(v) => enc.write_var_string(v.to_json_string())
+    CFormat(key, v) => {
       enc.write_var_string(key)
-      enc.write_var_string(json)
+      enc.write_var_string(v.to_json_string())
     }
-    Type(b) => {
+    CType(b) => {
       let kind = match b.kind {
         Some(k) => k
         None => YMap
@@ -49,13 +55,13 @@ fn write_content(enc : @lib0.Encoder, content : Content, offset : Int) -> Unit {
         _ => ()
       }
     }
-    Any(xs) => {
+    CAny(xs) => {
       enc.write_var_uint(xs.length() - offset)
       for i in offset..<xs.length() {
         enc.write_any(xs[i])
       }
     }
-    Doc(guid, opts) => {
+    CDoc(guid, opts) => {
       enc.write_var_string(guid)
       enc.write_any(opts)
     }
@@ -70,23 +76,30 @@ fn read_content(
 ) -> Content raise @lib0.DecodeError {
   let pos = dec.pos()
   match info & BITS5 {
-    1 => Deleted(dec.read_var_uint())
+    1 => CDeleted(dec.read_var_uint())
     2 => {
       let len = dec.read_var_uint()
       guard len <= dec.length() - dec.pos() else { raise UnexpectedEnd(pos~) }
-      let xs : Array[String] = Array(capacity=len)
+      let xs : Array[@lib0.Any] = Array(capacity=len)
       for _ in 0..<len {
-        xs.push(dec.read_var_string())
+        let s = dec.read_var_string()
+        xs.push(
+          if s == "undefined" {
+            Undefined
+          } else {
+            read_json_value(s, pos)
+          },
+        )
       }
-      JSON(xs)
+      CJson(xs)
     }
-    3 => Binary(dec.read_var_bytes())
-    4 => String(dec.read_var_string())
-    5 => Embed(dec.read_var_string())
+    3 => CBinary(dec.read_var_bytes())
+    4 => CString(dec.read_var_string())
+    5 => CEmbed(read_json_value(dec.read_var_string(), pos))
     6 => {
       let key = dec.read_var_string()
-      let value = dec.read_var_string()
-      Format(key, value)
+      let value = read_json_value(dec.read_var_string(), pos)
+      CFormat(key, value)
     }
     7 => {
       let type_ref = dec.read_var_uint()
@@ -100,7 +113,7 @@ fn read_content(
         6 => YXmlText
         _ => raise UnknownTag(pos~, tag=type_ref)
       }
-      Type(Branch::new_branch(Some(kind)))
+      CType(Branch::new_branch(Some(kind)))
     }
     8 => {
       let len = dec.read_var_uint()
@@ -109,14 +122,25 @@ fn read_content(
       for _ in 0..<len {
         xs.push(dec.read_any())
       }
-      Any(xs)
+      CAny(xs)
     }
     9 => {
       let guid = dec.read_var_string()
       let opts = dec.read_any()
-      Doc(guid, opts)
+      CDoc(guid, opts)
     }
     tag => raise UnknownTag(pos~, tag~)
+  }
+}
+
+///|
+/// Parses JSON text found in an update (`JSON.parse` in `readJSON`).
+fn read_json_value(
+  text : String,
+  pos : Int,
+) -> @lib0.Any raise @lib0.DecodeError {
+  @lib0.parse_json(text) catch {
+    _ => raise Malformed(pos~, reason="invalid JSON in content")
   }
 }
 

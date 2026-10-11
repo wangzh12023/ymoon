@@ -55,37 +55,39 @@ fn TypeRef::ref_number(self : TypeRef) -> Int {
 /// `yjs/src/structs/Content*.js`.
 pub(all) enum Content {
   /// ref 1 - tombstone payload after garbage collection of a deleted item.
-  Deleted(Int)
-  /// ref 2 - legacy JSON-encoded values (still decodable).
-  JSON(Array[String])
+  CDeleted(Int)
+  /// ref 2 - legacy JSON-encoded values (still decodable), kept parsed.
+  CJson(Array[@lib0.Any])
   /// ref 3 - a binary blob (`Uint8Array`).
-  Binary(Bytes)
+  CBinary(Bytes)
   /// ref 4 - a run of UTF-16 text.
-  String(String)
-  /// ref 5 - an embed in rich text (stored as JSON text).
-  Embed(String)
-  /// ref 6 - a formatting marker in rich text: key + JSON value text.
-  Format(String, String)
+  CString(String)
+  /// ref 5 - an embed in rich text (JSON on the wire, kept parsed).
+  CEmbed(@lib0.Any)
+  /// ref 6 - a formatting marker in rich text: key + value (JSON on the
+  /// wire). Yjs compares these values by reference, so the parsed value is
+  /// shared exactly the way the JavaScript objects are.
+  CFormat(String, @lib0.Any)
   /// ref 7 - a nested shared type.
-  Type(Branch)
+  CType(Branch)
   /// ref 8 - plain values (Y.Array elements, Y.Map values).
-  Any(Array[@lib0.Any])
+  CAny(Array[@lib0.Any])
   /// ref 9 - a sub-document reference: guid + options.
-  Doc(String, @lib0.Any)
+  CDoc(String, @lib0.Any)
 }
 
 ///|
 fn Content::ref_number(self : Content) -> Int {
   match self {
-    Deleted(_) => 1
-    JSON(_) => 2
-    Binary(_) => 3
-    String(_) => 4
-    Embed(_) => 5
-    Format(_, _) => 6
-    Type(_) => 7
-    Any(_) => 8
-    Doc(_, _) => 9
+    CDeleted(_) => 1
+    CJson(_) => 2
+    CBinary(_) => 3
+    CString(_) => 4
+    CEmbed(_) => 5
+    CFormat(_, _) => 6
+    CType(_) => 7
+    CAny(_) => 8
+    CDoc(_, _) => 9
   }
 }
 
@@ -93,11 +95,11 @@ fn Content::ref_number(self : Content) -> Int {
 /// Length of a content run, measured in Yjs clock units.
 fn Content::len(self : Content) -> Int {
   match self {
-    Deleted(n) => n
-    JSON(xs) => xs.length()
-    String(s) => s.length()
-    Any(xs) => xs.length()
-    Binary(_) | Embed(_) | Format(_, _) | Type(_) | Doc(_, _) => 1
+    CDeleted(n) => n
+    CJson(xs) => xs.length()
+    CString(s) => s.length()
+    CAny(xs) => xs.length()
+    CBinary(_) | CEmbed(_) | CFormat(_, _) | CType(_) | CDoc(_, _) => 1
   }
 }
 
@@ -105,7 +107,7 @@ fn Content::len(self : Content) -> Int {
 /// Whether the content contributes to the user-visible length of a list.
 fn Content::is_countable(self : Content) -> Bool {
   match self {
-    Deleted(_) | Format(_, _) => false
+    CDeleted(_) | CFormat(_, _) => false
     _ => true
   }
 }
@@ -115,10 +117,10 @@ fn Content::is_countable(self : Content) -> Bool {
 /// Mirrors `AbstractContent.splice`, including the surrogate pair fix-up.
 fn Content::split(self : Content, offset : Int) -> (Content, Content) {
   match self {
-    Deleted(n) => (Deleted(offset), Deleted(n - offset))
-    JSON(xs) => (JSON(xs[:offset].to_owned()), JSON(xs[offset:].to_owned()))
-    Any(xs) => (Any(xs[:offset].to_owned()), Any(xs[offset:].to_owned()))
-    String(s) => {
+    CDeleted(n) => (CDeleted(offset), CDeleted(n - offset))
+    CJson(xs) => (CJson(xs[:offset].to_owned()), CJson(xs[offset:].to_owned()))
+    CAny(xs) => (CAny(xs[:offset].to_owned()), CAny(xs[offset:].to_owned()))
+    CString(s) => {
       let mut left = s.unsafe_substring(start=0, end=offset)
       let mut right = s.unsafe_substring(start=offset, end=s.length())
       // Yjs replaces a surrogate pair broken by the split with U+FFFD on both
@@ -129,7 +131,7 @@ fn Content::split(self : Content, offset : Int) -> (Content, Content) {
         right = "\u{FFFD}" +
           s.unsafe_substring(start=offset + 1, end=s.length())
       }
-      (String(left), String(right))
+      (CString(left), CString(right))
     }
     _ => abort("content of this kind cannot be split")
   }
@@ -139,10 +141,10 @@ fn Content::split(self : Content, offset : Int) -> (Content, Content) {
 /// Tries to append `right` to `self` (`mergeWith`), returning the merged content.
 fn Content::try_merge(self : Content, right : Content) -> Content? {
   match (self, right) {
-    (Deleted(a), Deleted(b)) => Some(Deleted(a + b))
-    (JSON(a), JSON(b)) => Some(JSON([..a, ..b]))
-    (Any(a), Any(b)) => Some(Any([..a, ..b]))
-    (String(a), String(b)) => Some(String(a + b))
+    (CDeleted(a), CDeleted(b)) => Some(CDeleted(a + b))
+    (CJson(a), CJson(b)) => Some(CJson([..a, ..b]))
+    (CAny(a), CAny(b)) => Some(CAny([..a, ..b]))
+    (CString(a), CString(b)) => Some(CString(a + b))
     _ => None
   }
 }

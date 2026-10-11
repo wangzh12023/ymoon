@@ -154,3 +154,34 @@ test "property: strings round trip" {
     back == @lib0.utf16_well_formed(s).to_owned()
   })
 }
+
+///|
+test "js_number_to_string matches V8" {
+  for v in number_vectors {
+    let (bits, expected) = v
+    let d = bits.reinterpret_as_double()
+    assert_eq(@lib0.js_number_to_string(d), expected)
+  }
+}
+
+///|
+test "JSON string escaping matches V8" {
+  for v in string_vectors {
+    let (code_units, expected) = v
+    let s = String::from_array(code_units.map(c => c.unsafe_to_char()))
+    let sb = StringBuilder()
+    @lib0.write_json_string(sb, s)
+    assert_eq(sb.to_string(), expected)
+  }
+}
+
+///|
+test "json round trip keeps JS key order" {
+  let v = @lib0.parse_json(
+    "{\"b\":1,\"10\":2,\"a\":[true,null,\"x\"],\"2\":{}}",
+  )
+  inspect(
+    v.to_json_string(),
+    content="{\"2\":{},\"10\":2,\"b\":1,\"a\":[true,null,\"x\"]}",
+  )
+}

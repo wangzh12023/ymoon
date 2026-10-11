@@ -35,14 +35,12 @@ fn js_strict_equal(a : @lib0.Any, b : @lib0.Any) -> Bool {
     (Number(x), Number(y)) => x == y
     (BigInt64(x), BigInt64(y)) => x == y
     (String(x), String(y)) => x == y
+    // objects, arrays and byte arrays compare by reference
+    (Object(x), Object(y)) => physical_equal(x, y)
+    (Array(x), Array(y)) => physical_equal(x, y)
+    (Bytes(x), Bytes(y)) => physical_equal(x, y)
     _ => false
   }
-}
-
-///|
-/// Decoded value of a format item.
-fn format_value(json : String) -> @lib0.Any {
-  parse_json_any(json)
 }
 
 ///|
@@ -58,7 +56,7 @@ priv struct TextPos {
 fn TextPos::forward(self : TextPos) -> Unit {
   guard self.right is Some(r) else { abort("unexpected case") }
   match r.content {
-    Format(key, value) =>
+    CFormat(key, value) =>
       if !r.deleted() {
         update_current_attributes(self.current_attributes, key, value)
       }
@@ -72,9 +70,8 @@ fn TextPos::forward(self : TextPos) -> Unit {
 fn update_current_attributes(
   attrs : Map[String, @lib0.Any],
   key : String,
-  value_json : String,
+  value : @lib0.Any,
 ) -> Unit {
-  let value = format_value(value_json)
   if value is Null {
     attrs.remove(key)
   } else {
@@ -89,7 +86,7 @@ fn find_next_position(txn : Transaction, pos : TextPos, count : Int) -> TextPos 
   let mut count = count
   while pos.right is Some(r) && count > 0 {
     match r.content {
-      Format(key, value) =>
+      CFormat(key, value) =>
         if !r.deleted() {
           update_current_attributes(pos.current_attributes, key, value)
         }
@@ -183,17 +180,17 @@ fn insert_negated_attributes(
         (
           r.deleted() ||
           (match r.content {
-            Format(key, value) =>
+            CFormat(key, value) =>
               match negated.get(key) {
-                Some(nv) => equal_attrs(nv, format_value(value))
-                None => equal_attrs(Undefined, format_value(value))
+                Some(nv) => equal_attrs(nv, value)
+                None => equal_attrs(Undefined, value)
               }
             _ => false
           })
         ) {
     if !r.deleted() {
       match r.content {
-        Format(key, _) => negated.remove(key)
+        CFormat(key, _) => negated.remove(key)
         _ => ()
       }
     }
@@ -207,7 +204,7 @@ fn insert_negated_attributes(
       parent,
       left,
       right,
-      Format(key, any_to_json_string(val)),
+      CFormat(key, val),
     )
     next_format.integrate(txn, 0)
     curr.right = Some(next_format)
@@ -223,8 +220,8 @@ fn minimize_attribute_changes(curr : TextPos, attributes : Attrs) -> Unit {
     guard curr.right is Some(r) else { break }
     let skip = r.deleted() ||
       (match r.content {
-        Format(key, value) =>
-          equal_attrs(attributes.get(key).unwrap_or(Null), format_value(value))
+        CFormat(key, value) =>
+          equal_attrs(attributes.get(key).unwrap_or(Null), value)
         _ => false
       })
     if !skip {
@@ -253,13 +250,7 @@ fn insert_attributes(
       negated[key] = current_val
       let left = curr.left
       let right = curr.right
-      let item = new_local_item(
-        txn,
-        parent,
-        left,
-        right,
-        Format(key, any_to_json_string(val)),
-      )
+      let item = new_local_item(txn, parent, left, right, CFormat(key, val))
       item.integrate(txn, 0)
       curr.right = Some(item)
       curr.forward()
@@ -282,9 +273,9 @@ pub(all) enum TextChunk {
 ///|
 fn TextChunk::to_content(self : TextChunk) -> Content {
   match self {
-    Text(s) => String(s)
-    Embed(v) => Embed(any_to_json_string(v))
-    Shared(kind) => Type(Branch::new_branch(Some(kind)))
+    Text(s) => CString(s)
+    Embed(v) => CEmbed(v)
+    Shared(kind) => CType(Branch::new_branch(Some(kind)))
   }
 }
 
@@ -337,12 +328,12 @@ fn format_text(
   while curr.right is Some(r) &&
         (
           length > 0 ||
-          (negated.length() > 0 && (r.deleted() || r.content is Format(_, _)))
+          (negated.length() > 0 && (r.deleted() || r.content is CFormat(_, _)))
         ) {
     if !r.deleted() {
       match r.content {
-        Format(key, value) => {
-          let v = format_value(value)
+        CFormat(key, value) => {
+          let v = value
           match attributes.get(key) {
             Some(attr) => {
               if equal_attrs(attr, v) {
@@ -382,7 +373,7 @@ fn format_text(
       parent,
       curr.left,
       curr.right,
-      String(newlines),
+      CString(newlines),
     )
     item.integrate(txn, 0)
     curr.right = Some(item)
@@ -406,7 +397,7 @@ fn cleanup_formatting_gap(
   while end is Some(e) && (!e.countable() || e.deleted()) {
     if !e.deleted() {
       match e.content {
-        Format(key, _) => end_formats[key] = e
+        CFormat(key, _) => end_formats[key] = e
         _ => ()
       }
     }
@@ -422,8 +413,8 @@ fn cleanup_formatting_gap(
     }
     if !si.deleted() {
       match si.content {
-        Format(key, value_json) => {
-          let value = format_value(value_json)
+        CFormat(key, value_json) => {
+          let value = value_json
           let start_attr_value = start_attributes.get(key).unwrap_or(Null)
           let is_end_format = match end_formats.get(key) {
             Some(ef) => physical_equal(ef, si)
@@ -470,7 +461,7 @@ fn cleanup_contextless_formatting_gap(txn : Transaction, item : Item) -> Unit {
   while cur is Some(c) && (c.deleted() || !c.countable()) {
     if !c.deleted() {
       match c.content {
-        Format(key, _) =>
+        CFormat(key, _) =>
           if attrs.contains(key) {
             c.delete(txn)
           } else {
@@ -498,7 +489,7 @@ fn cleanup_ytext_formatting(t : Branch) -> Int {
     while end is Some(e) {
       if !e.deleted() {
         match e.content {
-          Format(key, value) =>
+          CFormat(key, value) =>
             update_current_attributes(current_attributes, key, value)
           _ => {
             res += cleanup_formatting_gap(
@@ -548,7 +539,7 @@ fn cleanup_ytext_after_transaction(txn : Transaction) -> Unit {
     }
     iterate_structs(txn, doc.store.structs_of(client), clock, after_clock, s => {
       match s {
-        Item(item) if !item.deleted() && item.content is Format(_, _) =>
+        Item(item) if !item.deleted() && item.content is CFormat(_, _) =>
           match item.parent {
             Branch(b) => add_full(b)
             _ => ()
@@ -566,7 +557,7 @@ fn cleanup_ytext_after_transaction(txn : Transaction) -> Unit {
             Branch(parent) =>
               if parent.has_formatting &&
                 !need_full_cleanup.iter().any(x => physical_equal(x, parent)) {
-                if item.content is Format(_, _) {
+                if item.content is CFormat(_, _) {
                   add_full(parent)
                 } else {
                   cleanup_contextless_formatting_gap(t, item)
@@ -618,7 +609,7 @@ fn delete_text(txn : Transaction, curr : TextPos, length : Int) -> TextPos {
   while length > 0 && curr.right is Some(r) {
     if !r.deleted() {
       match r.content {
-        Type(_) | Embed(_) | String(_) => {
+        CType(_) | CEmbed(_) | CString(_) => {
           if length < r.len {
             ignore(
               txn.doc.store.get_item_clean_start(txn, {
@@ -718,7 +709,7 @@ fn Branch::text_to_string(self : Branch) -> String {
   while n is Some(item) {
     if !item.deleted() && item.countable() {
       match item.content {
-        String(s) => sb.write_string(s)
+        CString(s) => sb.write_string(s)
         _ => ()
       }
     }
@@ -894,19 +885,16 @@ pub fn TextRef::to_delta(self : TextRef) -> Array[DeltaRun] {
   while n is Some(item) {
     if !item.deleted() {
       match item.content {
-        String(s) => sb.write_string(s)
-        Type(b) => {
+        CString(s) => sb.write_string(s)
+        CType(b) => {
           pack_str()
           ops.push({ insert: Shared(b), attributes: attrs_snapshot(), })
         }
-        Embed(j) => {
+        CEmbed(j) => {
           pack_str()
-          ops.push({
-            insert: Embed(parse_json_any(j)),
-            attributes: attrs_snapshot(),
-          })
+          ops.push({ insert: Embed(j), attributes: attrs_snapshot(), })
         }
-        Format(key, value) => {
+        CFormat(key, value) => {
           pack_str()
           update_current_attributes(current_attributes, key, value)
         }

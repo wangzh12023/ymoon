@@ -10,4 +10,5 @@ import {
 
 import {
   "moonbitlang/core/quickcheck",
+  "wangzh12023/ymoon/lib0",
 } for "test"

@@ -3,8 +3,10 @@ import {
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/double",
   "moonbitlang/core/debug",
+  "moonbitlang/core/string",
 }
 
 import {
   "moonbitlang/core/quickcheck",
+  "moonbitlang/core/uint64",
 } for "test"

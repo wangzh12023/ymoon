@@ -231,7 +231,7 @@ fn type_list_insert_after(
         right.map(r => r.id),
         Branch(parent),
         None,
-        Any(json_content.copy()),
+        CAny(json_content.copy()),
       )
       item.integrate(txn, 0)
       left = Some(item)
@@ -245,9 +245,9 @@ fn type_list_insert_after(
       _ => {
         pack_json()
         let ct : Content = match c {
-          Binary(b) => Binary(b)
-          Shared(kind) => Type(Branch::new_branch(Some(kind)))
-          SubDoc(guid, opts) => Doc(guid, opts)
+          Binary(b) => CBinary(b)
+          Shared(kind) => CType(Branch::new_branch(Some(kind)))
+          SubDoc(guid, opts) => CDoc(guid, opts)
           Any(_) => abort("unreachable")
         }
         let item = Item::new_item(
@@ -458,10 +458,10 @@ fn type_map_set(
   let doc = txn.doc
   let own_client = doc.client_id
   let content : Content = match value {
-    Any(v) => Any([v])
-    Binary(b) => Binary(b)
-    Shared(kind) => Type(Branch::new_branch(Some(kind)))
-    SubDoc(guid, opts) => Doc(guid, opts)
+    Any(v) => CAny([v])
+    Binary(b) => CBinary(b)
+    Shared(kind) => CType(Branch::new_branch(Some(kind)))
+    SubDoc(guid, opts) => CDoc(guid, opts)
   }
   let item = Item::new_item(
     { client: own_client, clock: doc.store.get_state(own_client), },
@@ -481,15 +481,15 @@ fn type_map_set(
 /// Last value of a content run, as an `Out` value.
 fn content_last_value(item : Item) -> Out {
   match item.content {
-    Any(xs) => Any(xs[xs.length() - 1])
-    JSON(xs) => Any(parse_json_any(xs[xs.length() - 1]))
-    Binary(b) => Any(Bytes(b))
-    String(s) =>
+    CAny(xs) => Any(xs[xs.length() - 1])
+    CJson(xs) => Any(xs[xs.length() - 1])
+    CBinary(b) => Any(Bytes(b))
+    CString(s) =>
       Any(String(s.unsafe_substring(start=s.length() - 1, end=s.length())))
-    Embed(j) => Any(parse_json_any(j))
-    Type(b) => Shared(b)
-    Doc(guid, _) => SubDoc(guid)
-    Deleted(_) | Format(_, _) => Any(Undefined)
+    CEmbed(j) => Any(j)
+    CType(b) => Shared(b)
+    CDoc(guid, _) => SubDoc(guid)
+    CDeleted(_) | CFormat(_, _) => Any(Undefined)
   }
 }
 
@@ -519,23 +519,23 @@ fn type_list_to_array(parent : Branch) -> Array[Out] {
 ///|
 fn append_content_values(out : Array[Out], item : Item) -> Unit {
   match item.content {
-    Any(xs) =>
+    CAny(xs) =>
       for x in xs {
         out.push(Any(x))
       }
-    JSON(xs) =>
+    CJson(xs) =>
       for x in xs {
-        out.push(Any(parse_json_any(x)))
+        out.push(Any(x))
       }
-    String(s) =>
+    CString(s) =>
       for i in 0..<s.length() {
         out.push(Any(String(s.unsafe_substring(start=i, end=i + 1))))
       }
-    Binary(b) => out.push(Any(Bytes(b)))
-    Embed(j) => out.push(Any(parse_json_any(j)))
-    Type(b) => out.push(Shared(b))
-    Doc(guid, _) => out.push(SubDoc(guid))
-    Deleted(_) | Format(_, _) => ()
+    CBinary(b) => out.push(Any(Bytes(b)))
+    CEmbed(j) => out.push(Any(j))
+    CType(b) => out.push(Shared(b))
+    CDoc(guid, _) => out.push(SubDoc(guid))
+    CDeleted(_) | CFormat(_, _) => ()
   }
 }
 
@@ -564,17 +564,6 @@ fn type_list_get(parent : Branch, index : Int) -> Out? {
     n = item.right
   }
   None
-}
-
-///|
-/// Converts a JSON text (legacy `ContentJSON` / embeds / format values) into
-/// an `Any` value.
-fn parse_json_any(text : String) -> @lib0.Any {
-  if text == "undefined" {
-    return Undefined
-  }
-  let j = @json.parse(text) catch { _ => return String(text) }
-  json_to_any(j)
 }
 
 ///|
@@ -623,5 +612,5 @@ pub fn any_to_json(a : @lib0.Any) -> Json {
 /// Serialises an `Any` value as JSON text exactly like `JSON.stringify`
 /// for the subset Yjs uses (format attributes and embeds).
 pub fn any_to_json_string(a : @lib0.Any) -> String {
-  any_to_json(a).stringify()
+  a.to_json_string()
 }

@@ -146,6 +146,12 @@ pub fn Doc::on_update(self : Doc, f : (Bytes, String) -> Unit) -> Unit {
 }
 
 ///|
+/// Removes all update callbacks registered with `on_update`.
+pub fn Doc::clear_update_handlers(self : Doc) -> Unit {
+  self.update_handlers.clear()
+}
+
+///|
 /// Registers an observer called with every transaction before cleanup
 /// (equivalent to observing all types; use `Transaction::changed_types`).
 pub fn Doc::observe(self : Doc, f : (Transaction) -> Unit) -> Unit {
@@ -166,7 +172,11 @@ fn Doc::get_root(self : Doc, name : String, kind : TypeRef) -> Branch {
     Some(b) =>
       match b.kind {
         None => {
+          // Yjs replaces the untyped placeholder with a fresh typed instance
+          // that copies `_map`, `_start` and `_length` only: the formatting
+          // flag is reset and the search-marker cache is re-enabled.
           b.kind = Some(kind)
+          b.has_formatting = false
           b.search_markers = initial_markers(Some(kind))
           b
         }

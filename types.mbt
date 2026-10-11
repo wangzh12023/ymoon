@@ -143,7 +143,7 @@ pub fn MapRef::set_shared(
   doc.transact(txn => {
     let item = type_map_set(txn, self.branch, key, Shared(kind))
     match item.content {
-      Type(b) => b
+      CType(b) => b
       _ => abort("internal: nested type expected")
     }
   })

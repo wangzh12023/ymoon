@@ -465,18 +465,18 @@ pub fn decode_update(
 ///|
 fn describe_content(c : Content) -> String {
   match c {
-    Deleted(n) => "Deleted(\{n})"
-    JSON(xs) => "JSON(\{xs.length()})"
-    Binary(b) => "Binary(\{b.length()} bytes)"
-    String(s) => "String(\{s.escape()})"
-    Embed(j) => "Embed(\{j})"
-    Format(k, v) => "Format(\{k}=\{v})"
-    Type(b) =>
+    CDeleted(n) => "Deleted(\{n})"
+    CJson(xs) => "JSON(\{xs.length()})"
+    CBinary(b) => "Binary(\{b.length()} bytes)"
+    CString(s) => "String(\{s.escape()})"
+    CEmbed(j) => "Embed(\{j.to_json_string()})"
+    CFormat(k, v) => "Format(\{k}=\{v.to_json_string()})"
+    CType(b) =>
       match b.kind {
         Some(k) => "Type(\{Repr(k)})"
         None => "Type(?)"
       }
-    Any(xs) => "Any(\{xs.length()})"
-    Doc(guid, _) => "Doc(\{guid})"
+    CAny(xs) => "Any(\{xs.length()})"
+    CDoc(guid, _) => "Doc(\{guid})"
   }
 }
