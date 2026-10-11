@@ -1,0 +1,11 @@
+{
+  "name": "ymoon-conformance",
+  "private": true,
+  "type": "module",
+  "description": "Differential test oracle: generates fixtures with the reference yjs implementation",
+  "dependencies": {
+    "yjs": "13.6.33",
+    "lib0": "0.2.119",
+    "y-protocols": "1.0.7"
+  }
+}
