@@ -408,7 +408,55 @@ pub fn room_pop_message(room : Int) -> Bytes {
 /// Plain text of `name` inside the room's server-side document.
 #export_name("room_text")
 pub fn room_text(room : Int, name : String) -> String {
-  rooms.get(room).unwrap().doc.get_text(name).to_string()
+  // read through the raw root branch: a relay server never upgrades roots
+  // to a concrete type, exactly like the y-websocket server
+  match rooms.get(room).unwrap().doc.root(name) {
+    Some(b) => @ymoon.TextRef::from_branch(b).to_string()
+    None => ""
+  }
+}
+
+///|
+/// A JSON snapshot of the server-side copy of a room, for dashboards:
+/// `{ connections, awareness, stateVector, updateBytes, roots, deltas }`.
+/// `roots` holds the JSON view of every root type; `deltas` the rich-text
+/// delta of roots that hold text. Reading never changes the document.
+#export_name("room_snapshot")
+pub fn room_snapshot(room : Int) -> String {
+  let r = rooms.get(room).unwrap()
+  let doc = r.doc
+  let roots : Map[String, Json] = Map([])
+  let deltas : Map[String, Json] = Map([])
+  for name in doc.root_names() {
+    match doc.root(name) {
+      Some(b) => {
+        roots[name] = b.to_json()
+        if b.inferred_kind() is Some(YText) {
+          deltas[name] = @ymoon.delta_to_json(
+            @ymoon.TextRef::from_branch(b).to_delta(),
+          )
+        }
+      }
+      None => ()
+    }
+  }
+  let sv = doc
+    .state_vector()
+    .entries()
+    .map(e => {
+      Json::array([Json::number(e.0.to_double()), Json::number(e.1.to_double())])
+    })
+  Json::object({
+    "room": Json::string(r.name),
+    "connections": Json::number(r.connection_count().to_double()),
+    "awareness": Json::number(r.awareness.states().length().to_double()),
+    "stateVector": Json::array(sv),
+    "updateBytes": Json::number(
+      doc.encode_state_as_update().length().to_double(),
+    ),
+    "roots": Json::object(roots),
+    "deltas": Json::object(deltas),
+  }).stringify()
 }
 
 ///|

@@ -63,6 +63,13 @@ jobs:
           cd examples/ywebsocket-server && npm ci && cd ../..
           node oracle/e2e-ywebsocket.mjs
 
+      - name: Browser E2E (Chrome; Quill editors collaborate through ymoon)
+        if: runner.os == 'Linux'
+        run: |
+          cd examples/playground && npm ci && node build.mjs && cd ../..
+          cd examples/collab-editor && npm ci && node build.mjs
+          node browser-test.mjs
+
   prove:
     name: moon prove (formal verification)
     runs-on: ubuntu-latest
@@ -100,8 +107,10 @@ jobs:
         with:
           node-version: 22
 
-      - name: Fetch dependencies (moon.work resolves ymoon from this checkout)
-        run: moon update
+      - name: Workspace with this checkout of ymoon
+        run: |
+          moon work init . server
+          moon update
 
       - name: Build the server
         run: moon -C server build main --target native --release

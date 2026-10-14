@@ -1,0 +1,23 @@
+{
+  "name": "ymoon-collab-editor",
+  "private": true,
+  "type": "module",
+  "description": "Quill + yjs + y-websocket in the browser, ymoon (MoonBit) as the collaboration server",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "node server.mjs 6633",
+    "test": "node browser-test.mjs"
+  },
+  "dependencies": {
+    "ws": "8.18.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.24.2",
+    "puppeteer-core": "25.12.0",
+    "quill": "2.0.3",
+    "quill-cursors": "4.3.0",
+    "y-quill": "1.0.0",
+    "y-websocket": "2.0.4",
+    "yjs": "13.6.33"
+  }
+}
