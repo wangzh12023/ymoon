@@ -6,6 +6,8 @@
 
 [![ci](https://github.com/wangzh12023/ymoon/actions/workflows/ci.yml/badge.svg)](https://github.com/wangzh12023/ymoon/actions/workflows/ci.yml)
 
+中文演示与验证指南：[docs/demo.zh.md](docs/demo.zh.md) · Live wire bench: <https://wangzh12023.github.io/ymoon/>
+
 | | |
 |---|---|
 | Wire compatibility | 6,000 randomized multi-peer sessions recorded with `yjs@13.6.33`, replayed by ymoon: every emitted update, state vector, sync diff and final document state is **byte-identical** (about 490,000 byte-level comparisons) |
@@ -164,7 +166,18 @@ Two servers are included:
 
 - **`examples/ywebsocket-server`**: the same `Room` compiled to JavaScript behind Node.js sockets, for hosts without a native toolchain.
 
-Point any y-websocket based editor at `ws://localhost:1234/<room>`. To run the Node.js variant:
+Point any y-websocket based editor at `ws://localhost:1234/<room>`.
+
+**Try it with a real editor.** `examples/collab-editor` serves Quill editors (with the official `yjs`, `y-websocket` and `y-quill` packages) whose collaboration server is ymoon, plus a panel that shows the MoonBit server's own copy of the document next to the browser's:
+
+```sh
+moon build --target js --release
+cd examples/playground && npm install && node build.mjs && cd ../..
+cd examples/collab-editor && npm install && node build.mjs
+node server.mjs 6633          # open http://localhost:6633/ in two windows
+```
+
+To run only the Node.js y-websocket server:
 
 ```sh
 moon build --target js --release
@@ -201,7 +214,8 @@ node examples/playground/build.mjs   # writes docs/index.html
 1. **Differential testing against the reference.** `oracle/gen-traces.mjs` drives `yjs@13.6.33` through randomized sessions of 2 to 4 peers. The sessions cover text with formatting, emoji and CJK, arrays, maps, garbage collection on and off, and partial syncs. It records every update. `conformance/` replays each session with ymoon and compares every emitted update, state vector, sync diff, final content and final encoded state byte by byte. CI generates fresh traces with a new seed on every run.
 2. **Reference vectors.** lib0 varints, strings, `writeAny`, JavaScript number formatting, `JSON.stringify` escaping and y-protocols messages are checked against bytes produced by the JavaScript libraries (`oracle/gen-*.mjs`).
 3. **Formal verification.** `verified/` holds the clock-range algebra used by delete sets and sync. It is proved with `moon prove` (Why3 + Z3) in the bounded machine-integer model, so the proofs also exclude integer overflow. The prover found a real overflow in the naive `start + len` comparison, which led to the overflow-safe form now used. `DeleteSet::contains` runs the verified lookup in production.
-4. **CRDT laws as properties.** QuickCheck properties check convergence after any exchange order, commutativity and idempotence of update application, `merge_updates` equivalence, and that `diff_update` carries exactly what a peer is missing. A property found a real bug: after integrating a struct with an offset, the cached client clock was wrong and later structs stayed pending forever. The fix has a regression test.
+4. **Real editors in a real browser.** `examples/collab-editor/browser-test.mjs` drives Chrome: Quill editors type, format, go offline and reconnect through the ymoon server, a late joiner catches up, and the server's own copy must equal every editor. The same run checks that the wire bench reports every update byte-identical across ymoon and yjs. CI runs it on every push.
+5. **CRDT laws as properties.** QuickCheck properties check convergence after any exchange order, commutativity and idempotence of update application, `merge_updates` equivalence, and that `diff_update` carries exactly what a peer is missing. A property found a real bug: after integrating a struct with an offset, the cached client clock was wrong and later structs stayed pending forever. The fix has a regression test.
 
 Run everything:
 

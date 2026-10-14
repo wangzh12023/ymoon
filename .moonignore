@@ -1,10 +1,12 @@
-# keep the published module small: benchmark data, web assets and the
-# JavaScript test oracle live in the git repository only
-bench/data/
+# Keep the published module small: only the MoonBit library packages, the CLI
+# and the JS bindings ship to mooncakes.io. Benchmarks, web demos, the
+# JavaScript test oracle and the native server module live in the repository.
+bench/
 docs/
-examples/playground/
+examples/
 oracle/
 testdata/
+server/
 .github/
 .githooks/
 .proof/

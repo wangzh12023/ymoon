@@ -5,8 +5,11 @@
 // final document state. ymoon replays the same scripts and must produce the
 // byte-identical updates and the same final content.
 //
-// Usage: node oracle/gen-traces.mjs <count> <seed> > traces.jsonl
+// Usage: node oracle/gen-traces.mjs <count> <seed> [output.jsonl]
+// Without an output file the traces go to stdout. Prefer the file argument on
+// Windows: PowerShell pipes re-encode text and would corrupt non-ASCII content.
 import * as Y from 'yjs'
+import fs from 'node:fs'
 
 const hex = u8 => Buffer.from(u8).toString('hex')
 
@@ -20,6 +23,9 @@ const rng = seed => () => {
 
 const count = Number(process.argv[2] || 200)
 const baseSeed = Number(process.argv[3] || 1)
+const outFile = process.argv[4] || null
+const sink = outFile ? fs.openSync(outFile, 'w') : null
+const emit = line => { if (sink !== null) fs.writeSync(sink, line); else process.stdout.write(line) }
 
 const ALPHABET = ['a', 'b', 'c', 'd', 'X', 'Y', ' ', '\n', 'é', '中', '😀']
 const ATTRS = [
@@ -167,7 +173,8 @@ for (let c = 0; c < count; c++) {
     }
   }
   const finals = docs.map(d => ({ state: hex(Y.encodeStateAsUpdate(d)), sv: hex(Y.encodeStateVector(d)), ...snapshot(d) }))
-  process.stdout.write(JSON.stringify({
+  emit(JSON.stringify({
     id: c, seed, mode, gc, clients: docs.map(d => d.clientID), steps, finals
   }) + '\n')
 }
+if (sink !== null) fs.closeSync(sink)

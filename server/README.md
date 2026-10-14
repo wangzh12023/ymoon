@@ -5,7 +5,8 @@ server written entirely in MoonBit: [ymoon](../) provides the Yjs document and
 the sync/awareness protocols, `moonbitlang/async` provides HTTP and WebSocket.
 
 ```sh
-# from the repository root (moon.work resolves ymoon from this checkout)
+# from the repository root: a workspace resolves ymoon from this checkout
+moon work init . server
 moon -C server run main --target native -- 1234
 ```
 
