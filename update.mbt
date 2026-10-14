@@ -2,20 +2,24 @@
 // the struct writers of yjs/src/structs.
 
 ///|
-const BIT6 : Int = 0x20
+const BIT6 : Int32 = 0x20
 
 ///|
-const BIT7 : Int = 0x40
+const BIT7 : Int32 = 0x40
 
 ///|
-const BIT8 : Int = 0x80
+const BIT8 : Int32 = 0x80
 
 ///|
-const BITS5 : Int = 0x1f
+const BITS5 : Int32 = 0x1f
 
 ///|
 /// Writes a content payload (`AbstractContent.write`) starting at `offset`.
-fn write_content(enc : @lib0.Encoder, content : Content, offset : Int) -> Unit {
+fn write_content(
+  enc : @lib0.Encoder,
+  content : Content,
+  offset : Int32,
+) -> Unit {
   match content {
     CDeleted(n) => enc.write_var_uint(n - offset)
     CJson(xs) => {
@@ -72,7 +76,7 @@ fn write_content(enc : @lib0.Encoder, content : Content, offset : Int) -> Unit {
 /// Reads a content payload for the given info byte (`readItemContent`).
 fn read_content(
   dec : @lib0.Decoder,
-  info : Int,
+  info : Int32,
 ) -> Content raise @lib0.DecodeError {
   let pos = dec.pos()
   match info & BITS5 {
@@ -137,7 +141,7 @@ fn read_content(
 /// Parses JSON text found in an update (`JSON.parse` in `readJSON`).
 fn read_json_value(
   text : String,
-  pos : Int,
+  pos : Int32,
 ) -> @lib0.Any raise @lib0.DecodeError {
   @lib0.parse_json(text) catch {
     _ => raise Malformed(pos~, reason="invalid JSON in content")
@@ -158,7 +162,7 @@ fn find_root_type_key(b : Branch) -> String {
 
 ///|
 /// Writes an item starting at `offset` (`Item.write`).
-fn write_item(enc : @lib0.Encoder, item : Item, offset : Int) -> Unit {
+fn write_item(enc : @lib0.Encoder, item : Item, offset : Int32) -> Unit {
   let origin : ID? = if offset > 0 {
     Some({ client: item.id.client, clock: item.id.clock + offset - 1, })
   } else {
@@ -227,7 +231,7 @@ fn read_id(dec : @lib0.Decoder) -> ID raise @lib0.DecodeError {
 
 ///|
 /// Writes one struct starting at `offset`.
-fn write_struct(enc : @lib0.Encoder, s : Struct, offset : Int) -> Unit {
+fn write_struct(enc : @lib0.Encoder, s : Struct, offset : Int32) -> Unit {
   match s {
     GC(g) => {
       enc.write_u8(0)
@@ -246,8 +250,8 @@ fn write_struct(enc : @lib0.Encoder, s : Struct, offset : Int) -> Unit {
 fn write_structs(
   enc : @lib0.Encoder,
   structs : Array[Struct],
-  client : UInt,
-  clock : Int,
+  client : UInt32,
+  clock : Int32,
 ) -> Unit {
   // make sure the first id exists
   let clock = @cmp.maximum(clock, structs[0].id().clock)
@@ -269,7 +273,7 @@ fn write_clients_structs(
   store : StructStore,
   sv : StateVector,
 ) -> Unit {
-  let sm : Map[UInt, Int] = Map([])
+  let sm : Map[UInt32, Int32] = Map([])
   for entry in sv.entries() {
     let (client, clock) = entry
     if store.get_state(client) > clock {
@@ -295,7 +299,7 @@ fn write_clients_structs(
 /// are included (delete sets are always complete, like in Yjs).
 pub fn Doc::encode_state_as_update(
   self : Doc,
-  target? : StateVector = StateVector(),
+  target~ : StateVector = StateVector(),
 ) -> Bytes {
   let enc = @lib0.Encoder()
   write_clients_structs(enc, self.store, target)
@@ -326,7 +330,7 @@ pub fn Doc::encode_state_as_update(
 ///|
 /// Decoded refs of one client, consumed front to back.
 priv struct ClientRefs {
-  mut i : Int
+  mut i : Int32
   mut refs : Array[Struct]
 }
 
@@ -335,8 +339,8 @@ priv struct ClientRefs {
 fn read_clients_struct_refs(
   dec : @lib0.Decoder,
   doc : Doc,
-) -> Map[UInt, ClientRefs] raise @lib0.DecodeError {
-  let client_refs : Map[UInt, ClientRefs] = Map([])
+) -> Map[UInt32, ClientRefs] raise @lib0.DecodeError {
+  let client_refs : Map[UInt32, ClientRefs] = Map([])
   let num_of_state_updates = dec.read_var_uint()
   for _ in 0..<num_of_state_updates {
     let number_of_structs = dec.read_var_uint()
@@ -361,8 +365,8 @@ fn read_clients_struct_refs(
 /// raw form (used by the document-free update utilities).
 fn read_struct(
   dec : @lib0.Decoder,
-  client : UInt,
-  clock : Int,
+  client : UInt32,
+  clock : Int32,
   doc : Doc?,
 ) -> Struct raise @lib0.DecodeError {
   let pos = dec.pos()
@@ -424,7 +428,7 @@ fn read_struct(
 fn integrate_structs(
   txn : Transaction,
   store : StructStore,
-  clients_struct_refs : Map[UInt, ClientRefs],
+  clients_struct_refs : Map[UInt32, ClientRefs],
 ) -> PendingStructs? {
   let stack : Array[Struct] = []
   // take the higher client ids first
@@ -452,8 +456,8 @@ fn integrate_structs(
   let mut cur_target = get_next_struct_target()
   guard cur_target is Some(first_target) else { return None }
   let rest_structs = StructStore::new_store()
-  let missing_sv : Map[UInt, Int] = Map([])
-  fn update_missing_sv(client : UInt, clock : Int) -> Unit {
+  let missing_sv : Map[UInt32, Int32] = Map([])
+  fn update_missing_sv(client : UInt32, clock : Int32) -> Unit {
     match missing_sv.get(client) {
       Some(m) if m <= clock => ()
       _ => missing_sv[client] = clock
@@ -463,7 +467,7 @@ fn integrate_structs(
   let mut stack_head = first_target.refs[first_target.i]
   first_target.i += 1
   // cache of client states
-  let state : Map[UInt, Int] = Map([])
+  let state : Map[UInt32, Int32] = Map([])
   fn add_stack_to_rest_ss() -> Unit {
     for item in stack {
       let client = item.id().client
@@ -664,7 +668,7 @@ fn read_and_apply_delete_set(
 pub fn Doc::apply_update(
   self : Doc,
   update : BytesView,
-  origin? : String = "",
+  origin~ : String = "",
 ) -> Unit raise @lib0.DecodeError {
   let mut retry : Bytes? = None
   self.transact(

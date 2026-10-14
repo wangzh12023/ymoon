@@ -5,7 +5,7 @@
 //   moon run bench/cli --target native --release -- bench/data/automerge-paper.bin
 
 ///|
-fn read_u32(b : Bytes, pos : Int) -> Int {
+fn read_u32(b : Bytes, pos : Int32) -> Int32 {
   b[pos].to_int() |
   (b[pos + 1].to_int() << 8) |
   (b[pos + 2].to_int() << 16) |
@@ -14,8 +14,8 @@ fn read_u32(b : Bytes, pos : Int) -> Int {
 
 ///|
 priv struct Patch {
-  pos : Int
-  del : Int
+  pos : Int32
+  del : Int32
   ins : String
 }
 

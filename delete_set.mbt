@@ -4,14 +4,14 @@
 ///|
 /// A contiguous range of deleted clocks of one client.
 pub(all) struct DeleteItem {
-  clock : Int
-  len : Int
+  clock : Int32
+  len : Int32
 } derive(Eq, Debug)
 
 ///|
 /// Deleted clock ranges grouped by client.
 pub struct DeleteSet {
-  priv clients : Map[UInt, Array[DeleteItem]]
+  priv clients : Map[UInt32, Array[DeleteItem]]
 }
 
 ///|
@@ -31,9 +31,9 @@ pub fn DeleteSet::is_empty(self : DeleteSet) -> Bool {
 /// normalise.
 pub fn DeleteSet::add(
   self : DeleteSet,
-  client : UInt,
-  clock : Int,
-  len : Int,
+  client : UInt32,
+  clock : Int32,
+  len : Int32,
 ) -> Unit {
   match self.clients.get(client) {
     Some(items) => items.push({ clock, len, })
@@ -43,7 +43,10 @@ pub fn DeleteSet::add(
 
 ///|
 /// The ranges of `client` (sorted after `sort_and_merge`).
-pub fn DeleteSet::ranges(self : DeleteSet, client : UInt) -> Array[DeleteItem] {
+pub fn DeleteSet::ranges(
+  self : DeleteSet,
+  client : UInt32,
+) -> Array[DeleteItem] {
   match self.clients.get(client) {
     Some(items) => items
     None => []
@@ -52,7 +55,7 @@ pub fn DeleteSet::ranges(self : DeleteSet, client : UInt) -> Array[DeleteItem] {
 
 ///|
 /// Clients with at least one range, in insertion order.
-pub fn DeleteSet::clients(self : DeleteSet) -> Array[UInt] {
+pub fn DeleteSet::clients(self : DeleteSet) -> Array[UInt32] {
   self.clients.keys().collect()
 }
 
@@ -161,7 +164,7 @@ fn DeleteSet::from_store(ss : StructStore) -> DeleteSet {
 ///|
 /// Clients sorted by descending id, the deterministic order Yjs uses when
 /// writing.
-fn sorted_clients_desc(keys : Iter[UInt]) -> Array[UInt] {
+fn sorted_clients_desc(keys : Iter[UInt32]) -> Array[UInt32] {
   let ks = keys.collect()
   ks.sort_by((a, b) => b.compare(a))
   ks
@@ -213,7 +216,7 @@ pub fn DeleteSet::read(
 
 ///|
 /// Reads a client id, which must fit in 32 bits.
-fn read_client(dec : @lib0.Decoder) -> UInt raise @lib0.DecodeError {
+fn read_client(dec : @lib0.Decoder) -> UInt32 raise @lib0.DecodeError {
   let pos = dec.pos()
   let c = dec.read_var_uint64()
   guard c <= 0xffffffffUL else { raise IntegerOutOfRange(pos~) }
@@ -223,7 +226,7 @@ fn read_client(dec : @lib0.Decoder) -> UInt raise @lib0.DecodeError {
 ///|
 /// Highest known clock (exclusive) per client.
 pub struct StateVector {
-  priv clients : Map[UInt, Int]
+  priv clients : Map[UInt32, Int32]
 }
 
 ///|
@@ -234,31 +237,35 @@ pub fn StateVector::StateVector() -> StateVector {
 
 ///|
 /// The clock known for `client` (0 if unknown).
-pub fn StateVector::get(self : StateVector, client : UInt) -> Int {
+pub fn StateVector::get(self : StateVector, client : UInt32) -> Int32 {
   self.clients.get(client).unwrap_or(0)
 }
 
 ///|
 /// Sets the clock of `client`.
-pub fn StateVector::set(self : StateVector, client : UInt, clock : Int) -> Unit {
+pub fn StateVector::set(
+  self : StateVector,
+  client : UInt32,
+  clock : Int32,
+) -> Unit {
   self.clients[client] = clock
 }
 
 ///|
 /// Whether the vector mentions `client`.
-pub fn StateVector::contains(self : StateVector, client : UInt) -> Bool {
+pub fn StateVector::contains(self : StateVector, client : UInt32) -> Bool {
   self.clients.contains(client)
 }
 
 ///|
 /// Number of clients in the vector.
-pub fn StateVector::length(self : StateVector) -> Int {
+pub fn StateVector::length(self : StateVector) -> Int32 {
   self.clients.length()
 }
 
 ///|
 /// `(client, clock)` pairs, sorted by descending client id.
-pub fn StateVector::entries(self : StateVector) -> Array[(UInt, Int)] {
+pub fn StateVector::entries(self : StateVector) -> Array[(UInt32, Int32)] {
   sorted_clients_desc(self.clients.keys()).map(c => (c, self.clients[c]))
 }
 

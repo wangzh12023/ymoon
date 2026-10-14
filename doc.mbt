@@ -15,7 +15,7 @@ pub struct Branch {
   /// Owning document.
   mut doc : Doc?
   /// Number of countable, non-deleted list elements (`_length`).
-  mut length : Int
+  mut length : Int32
   /// What kind of shared type this branch is. Root branches start as
   /// `None` until first accessed with a concrete kind (`Doc.get`).
   mut kind : TypeRef?
@@ -24,11 +24,11 @@ pub struct Branch {
   /// Index cache (`_searchMarker`); None for types that never use markers.
   priv mut search_markers : Array[SearchMarker]?
   /// Process-unique identity, used as a cheap map key.
-  priv uid : Int
+  priv uid : Int32
 }
 
 ///|
-let branch_uid_counter : Ref[Int] = Ref(0)
+let branch_uid_counter : Ref[Int32] = Ref(0)
 
 ///|
 fn Branch::new_branch(kind : TypeRef?) -> Branch {
@@ -65,7 +65,7 @@ pub fn Branch::kind(self : Branch) -> TypeRef? {
 
 ///|
 /// Number of visible list elements (text length in UTF-16 units for Y.Text).
-pub fn Branch::len(self : Branch) -> Int {
+pub fn Branch::len(self : Branch) -> Int32 {
   self.length
 }
 
@@ -90,7 +90,7 @@ pub fn Branch::id(self : Branch) -> ID? {
 /// A Yjs document: a set of named root shared types plus the struct store.
 pub struct Doc {
   /// This peer's client id.
-  mut client_id : UInt
+  mut client_id : UInt32
   /// Whether deleted content is garbage collected.
   gc : Bool
   /// Globally unique document id.
@@ -110,14 +110,14 @@ pub struct Doc {
 ///|
 /// Structs that could not be integrated yet because of missing dependencies.
 priv struct PendingStructs {
-  missing : Map[UInt, Int]
+  missing : Map[UInt32, Int32]
   update : Bytes
 }
 
 ///|
 /// Creates a document. When `client_id` is omitted, a random 32-bit id is
 /// chosen like `random.uint32` in Yjs.
-pub fn Doc::Doc(client_id? : UInt, gc? : Bool = true, guid? : String) -> Doc {
+pub fn Doc::Doc(client_id? : UInt32, gc~ : Bool = true, guid? : String) -> Doc {
   let client_id = match client_id {
     Some(c) => c
     None => random_client_id()
@@ -143,7 +143,7 @@ pub fn Doc::Doc(client_id? : UInt, gc? : Bool = true, guid? : String) -> Doc {
 
 ///|
 /// This peer's client id.
-pub fn Doc::client_id(self : Doc) -> UInt {
+pub fn Doc::client_id(self : Doc) -> UInt32 {
   self.client_id
 }
 
@@ -251,7 +251,7 @@ pub fn Doc::encode_state_vector(self : Doc) -> Bytes {
 }
 
 ///|
-fn random_client_id() -> UInt {
+fn random_client_id() -> UInt32 {
   match @env.rand(4) {
     Some(b) if b.length() == 4 =>
       (b[0].to_uint() << 24) |
@@ -271,7 +271,7 @@ fn random_uuid() -> String {
   let bytes = match @env.rand(16) {
     Some(b) if b.length() == 16 => b.to_array()
     _ => {
-      let rng = @random.Rand::new()
+      let rng = @random.Rand()
       Array::makei(16, _ => rng.int(limit=256).to_byte())
     }
   }

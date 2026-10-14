@@ -4,7 +4,7 @@
 
 ///|
 /// Identifier of a connection inside a room.
-pub type ConnId = Int
+pub type ConnId = Int32
 
 ///|
 /// A shared document plus the awareness of everyone editing it.
@@ -16,9 +16,9 @@ pub struct Room {
   /// Awareness of all connected clients.
   awareness : Awareness
   /// Open connections and their outgoing message queues.
-  priv conns : Map[Int, Conn]
+  priv conns : Map[Int32, Conn]
   /// Awareness client ids announced by each connection.
-  priv controlled : Map[Int, Array[UInt]]
+  priv controlled : Map[Int32, Array[UInt32]]
 }
 
 ///|
@@ -29,7 +29,7 @@ priv struct Conn {
 
 ///|
 /// Creates an empty room. The server's own client id never edits content.
-pub fn Room::Room(name : String, client_id? : UInt = 0) -> Room {
+pub fn Room::Room(name : String, client_id~ : UInt32 = 0) -> Room {
   let doc = @ymoon.Doc(client_id~)
   let awareness = Awareness(client_id)
   // the server has no presence of its own
@@ -68,12 +68,12 @@ pub fn Room::Room(name : String, client_id? : UInt = 0) -> Room {
 }
 
 ///|
-fn origin_of(conn_id : Int) -> String {
+fn origin_of(conn_id : Int32) -> String {
   "conn:\{conn_id}"
 }
 
 ///|
-fn parse_origin(origin : String) -> Int? {
+fn parse_origin(origin : String) -> Int32? {
   guard origin.has_prefix("conn:") else { return None }
   Some(@string.parse_int(origin[5:])) catch {
     _ => None
@@ -81,7 +81,7 @@ fn parse_origin(origin : String) -> Int? {
 }
 
 ///|
-fn Room::broadcast(self : Room, msg : Bytes, except? : String = "") -> Unit {
+fn Room::broadcast(self : Room, msg : Bytes, except~ : String = "") -> Unit {
   for id, conn in self.conns {
     if origin_of(id) != except {
       (conn.send)(msg)
@@ -91,7 +91,7 @@ fn Room::broadcast(self : Room, msg : Bytes, except? : String = "") -> Unit {
 
 ///|
 /// Number of open connections.
-pub fn Room::connection_count(self : Room) -> Int {
+pub fn Room::connection_count(self : Room) -> Int32 {
   self.conns.length()
 }
 
@@ -100,7 +100,7 @@ pub fn Room::connection_count(self : Room) -> Int {
 /// sync step 1 and the current awareness states.
 pub fn Room::connect(
   self : Room,
-  conn_id : Int,
+  conn_id : Int32,
   send : (Bytes) -> Unit,
 ) -> Unit {
   self.conns[conn_id] = { send, }
@@ -118,7 +118,7 @@ pub fn Room::connect(
 /// Handles one binary message received from `conn_id`.
 pub fn Room::receive(
   self : Room,
-  conn_id : Int,
+  conn_id : Int32,
   data : BytesView,
 ) -> Unit raise @lib0.DecodeError {
   guard self.conns.get(conn_id) is Some(conn) else { return }
@@ -142,7 +142,7 @@ pub fn Room::receive(
 
 ///|
 /// Detaches a connection and removes the awareness states it controlled.
-pub fn Room::disconnect(self : Room, conn_id : Int) -> Unit {
+pub fn Room::disconnect(self : Room, conn_id : Int32) -> Unit {
   let ids = self.controlled.get(conn_id).unwrap_or([])
   self.conns.remove(conn_id)
   self.controlled.remove(conn_id)

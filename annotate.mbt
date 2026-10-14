@@ -46,14 +46,14 @@ pub fn SegmentKind::name(self : SegmentKind) -> String {
 ///|
 /// A labelled byte range `[start, end)` of an update.
 pub(all) struct Segment {
-  start : Int
-  end : Int
+  start : Int32
+  end : Int32
   kind : SegmentKind
   label : String
 } derive(Eq, Debug)
 
 ///|
-fn content_kind_name(info : Int) -> String {
+fn content_kind_name(info : Int32) -> String {
   match info & BITS5 {
     0 => "GC"
     1 => "Deleted"
@@ -78,7 +78,7 @@ pub fn annotate_update(
 ) -> Array[Segment] raise @lib0.DecodeError {
   let dec = @lib0.Decoder(update)
   let segs : Array[Segment] = []
-  fn mark(start : Int, kind : SegmentKind, label : String) -> Unit {
+  fn mark(start : Int32, kind : SegmentKind, label : String) -> Unit {
     segs.push({ start, end: dec.pos(), kind, label, })
   }
 

@@ -3,7 +3,7 @@
 ///|
 /// All structs of a document, grouped by client and sorted by clock.
 pub struct StructStore {
-  priv clients : Map[UInt, Array[Struct]]
+  priv clients : Map[UInt32, Array[Struct]]
 }
 
 ///|
@@ -13,7 +13,7 @@ fn StructStore::new_store() -> StructStore {
 
 ///|
 /// Next expected clock for `client` (`getState`).
-pub fn StructStore::get_state(self : StructStore, client : UInt) -> Int {
+pub fn StructStore::get_state(self : StructStore, client : UInt32) -> Int32 {
   match self.clients.get(client) {
     None => 0
     Some(structs) => structs[structs.length() - 1].end_clock()
@@ -23,7 +23,7 @@ pub fn StructStore::get_state(self : StructStore, client : UInt) -> Int {
 ///|
 /// The state vector of the store (`getStateVector`).
 pub fn StructStore::state_vector(self : StructStore) -> StateVector {
-  let sv : Map[UInt, Int] = Map([])
+  let sv : Map[UInt32, Int32] = Map([])
   for client, structs in self.clients {
     sv[client] = structs[structs.length() - 1].end_clock()
   }
@@ -47,7 +47,7 @@ fn StructStore::add_struct(self : StructStore, s : Struct) -> Unit {
 
 ///|
 /// Binary search for the struct containing `clock` (`findIndexSS`).
-fn find_index_ss(structs : Array[Struct], clock : Int) -> Int {
+fn find_index_ss(structs : Array[Struct], clock : Int32) -> Int32 {
   let mut left = 0
   let mut right = structs.length() - 1
   let last = structs[right]
@@ -82,7 +82,10 @@ fn find_index_ss(structs : Array[Struct], clock : Int) -> Int {
 }
 
 ///|
-fn StructStore::structs_of(self : StructStore, client : UInt) -> Array[Struct] {
+fn StructStore::structs_of(
+  self : StructStore,
+  client : UInt32,
+) -> Array[Struct] {
   match self.clients.get(client) {
     Some(s) => s
     None => abort("struct store: unknown client \{client}")
@@ -102,8 +105,8 @@ fn StructStore::find(self : StructStore, id : ID) -> Struct {
 fn find_index_clean_start(
   txn : Transaction,
   structs : Array[Struct],
-  clock : Int,
-) -> Int {
+  clock : Int32,
+) -> Int32 {
   let index = find_index_ss(structs, clock)
   match structs[index] {
     Item(item) if item.id.clock < clock => {
@@ -164,8 +167,8 @@ fn StructStore::replace_struct(
 fn iterate_structs(
   txn : Transaction,
   structs : Array[Struct],
-  clock_start : Int,
-  len : Int,
+  clock_start : Int32,
+  len : Int32,
   f : (Struct) -> Unit,
 ) -> Unit {
   if len == 0 {

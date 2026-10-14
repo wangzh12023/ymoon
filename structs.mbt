@@ -6,12 +6,12 @@
 /// `client` is a random 32-bit peer id (Yjs uses `random.uint32`), so it is
 /// stored as `UInt`; clocks count UTF-16 code units / elements per client.
 pub(all) struct ID {
-  client : UInt
-  clock : Int
+  client : UInt32
+  clock : Int32
 } derive(Eq, Hash, Debug, Compare)
 
 ///|
-pub fn ID::ID(client : UInt, clock : Int) -> ID {
+pub fn ID::ID(client : UInt32, clock : Int32) -> ID {
   { client, clock, }
 }
 
@@ -38,7 +38,7 @@ pub(all) enum TypeRef {
 } derive(Eq, Debug)
 
 ///|
-fn TypeRef::ref_number(self : TypeRef) -> Int {
+fn TypeRef::ref_number(self : TypeRef) -> Int32 {
   match self {
     YArray => 0
     YMap => 1
@@ -55,7 +55,7 @@ fn TypeRef::ref_number(self : TypeRef) -> Int {
 /// `yjs/src/structs/Content*.js`.
 pub(all) enum Content {
   /// ref 1 - tombstone payload after garbage collection of a deleted item.
-  CDeleted(Int)
+  CDeleted(Int32)
   /// ref 2 - legacy JSON-encoded values (still decodable), kept parsed.
   CJson(Array[@lib0.Any])
   /// ref 3 - a binary blob (`Uint8Array`).
@@ -77,7 +77,7 @@ pub(all) enum Content {
 }
 
 ///|
-fn Content::ref_number(self : Content) -> Int {
+fn Content::ref_number(self : Content) -> Int32 {
   match self {
     CDeleted(_) => 1
     CJson(_) => 2
@@ -93,7 +93,7 @@ fn Content::ref_number(self : Content) -> Int {
 
 ///|
 /// Length of a content run, measured in Yjs clock units.
-fn Content::len(self : Content) -> Int {
+fn Content::len(self : Content) -> Int32 {
   match self {
     CDeleted(n) => n
     CJson(xs) => xs.length()
@@ -115,7 +115,7 @@ fn Content::is_countable(self : Content) -> Bool {
 ///|
 /// Splits content at `offset`, returning (left, right).
 /// Mirrors `AbstractContent.splice`, including the surrogate pair fix-up.
-fn Content::split(self : Content, offset : Int) -> (Content, Content) {
+fn Content::split(self : Content, offset : Int32) -> (Content, Content) {
   match self {
     CDeleted(n) => (CDeleted(offset), CDeleted(n - offset))
     CJson(xs) => (CJson(xs[:offset].to_owned()), CJson(xs[offset:].to_owned()))
@@ -151,23 +151,23 @@ fn Content::try_merge(self : Content, right : Content) -> Content? {
 
 ///|
 /// Flags stored in `Item::info`, matching the bit layout used by Yjs.
-const INFO_KEEP : Int = 1
+const INFO_KEEP : Int32 = 1
 
 ///|
-const INFO_COUNTABLE : Int = 2
+const INFO_COUNTABLE : Int32 = 2
 
 ///|
-const INFO_DELETED : Int = 4
+const INFO_DELETED : Int32 = 4
 
 ///|
 /// The item is referenced by a search marker.
-const INFO_MARKER : Int = 8
+const INFO_MARKER : Int32 = 8
 
 ///|
 /// An integrated piece of content (`Item` in Yjs).
 pub struct Item {
   mut id : ID
-  mut len : Int
+  mut len : Int32
   /// The ID of the element that was to the left when this item was created.
   mut origin : ID?
   /// The item currently to the left in the parent's list.
@@ -181,7 +181,7 @@ pub struct Item {
   /// Map key when the item belongs to a Y.Map-like slot.
   mut parent_sub : String?
   mut content : Content
-  mut info : Int
+  mut info : Int32
   /// Undo/redo bookkeeping (kept for format compatibility).
   mut redone : ID?
 }
@@ -283,7 +283,7 @@ pub enum Struct {
 /// A garbage-collected or skipped clock range.
 pub struct GCRange {
   mut id : ID
-  mut len : Int
+  mut len : Int32
 }
 
 ///|
@@ -295,7 +295,7 @@ fn Struct::id(self : Struct) -> ID {
 }
 
 ///|
-fn Struct::len(self : Struct) -> Int {
+fn Struct::len(self : Struct) -> Int32 {
   match self {
     GC(g) | Skip(g) => g.len
     Item(i) => i.len
@@ -311,7 +311,7 @@ fn Struct::deleted(self : Struct) -> Bool {
 }
 
 ///|
-fn Struct::end_clock(self : Struct) -> Int {
+fn Struct::end_clock(self : Struct) -> Int32 {
   let id = self.id()
   id.clock + self.len()
 }

@@ -183,7 +183,7 @@ pub fn doc_to_json(doc : @ymoon.Doc) -> Json {
 /// Human readable or JSON description of updates.
 pub fn inspect_updates(
   inputs : Array[Bytes],
-  json? : Bool = false,
+  json~ : Bool = false,
 ) -> String raise {
   let sb = StringBuilder()
   let reports : Array[Json] = []
@@ -193,7 +193,7 @@ pub fn inspect_updates(
     let mut gcs = 0
     let mut skips = 0
     let mut units = 0
-    let clients : Map[UInt, Int] = Map([])
+    let clients : Map[UInt32, Int32] = Map([])
     for s in structs {
       match s {
         GC(client~, len~, ..) => {

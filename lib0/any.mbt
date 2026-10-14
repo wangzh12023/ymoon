@@ -30,7 +30,7 @@ pub(all) enum Any {
 
 ///|
 /// Convenience constructor for integral numbers.
-pub fn Any::int(n : Int) -> Any {
+pub fn Any::int(n : Int32) -> Any {
   Number(n.to_double())
 }
 
@@ -167,7 +167,7 @@ pub fn Encoder::write_any(self : Encoder, value : Any) -> Unit {
 ///|
 /// Maximum nesting depth accepted by `read_any`, protecting against stack
 /// exhaustion on hostile input.
-pub let max_any_depth : Int = 1000
+pub let max_any_depth : Int32 = 1000
 
 ///|
 /// Decodes a value written by lib0's `writeAny`.
@@ -178,7 +178,7 @@ pub fn Decoder::read_any(self : Decoder) -> Any raise DecodeError {
 ///|
 fn Decoder::read_any_depth(
   self : Decoder,
-  depth : Int,
+  depth : Int32,
 ) -> Any raise DecodeError {
   let start = self.pos()
   if depth > max_any_depth {

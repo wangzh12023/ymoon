@@ -13,7 +13,7 @@ pub struct Transaction {
   mut after_state : StateVector
   /// Changed shared types, keyed by `branch_key`, with the changed map keys
   /// (`None` = the list part changed).
-  priv changed : Map[Int, (Branch, Array[String?])]
+  priv changed : Map[Int32, (Branch, Array[String?])]
   /// Items that may be mergeable with their neighbours after cleanup.
   priv merge_structs : Array[Item]
   /// User supplied origin label.
@@ -25,7 +25,7 @@ pub struct Transaction {
 
 ///|
 /// Identity of a branch usable as a map key.
-fn branch_key(b : Branch) -> Int {
+fn branch_key(b : Branch) -> Int32 {
   b.uid
 }
 
@@ -88,8 +88,8 @@ pub fn Transaction::changed_types(
 pub fn[T] Doc::transact(
   self : Doc,
   f : (Transaction) -> T raise?,
-  origin? : String = "",
-  is_local? : Bool = true,
+  origin~ : String = "",
+  is_local~ : Bool = true,
 ) -> T raise? {
   match self.transaction {
     Some(t) => f(t)
@@ -108,7 +108,7 @@ pub fn[T] Doc::transact(
 ///|
 /// Merges `structs[pos]` into its left neighbours where possible, returning
 /// the number of merged structs (`tryToMergeWithLefts`).
-fn try_to_merge_with_lefts(structs : Array[Struct], pos : Int) -> Int {
+fn try_to_merge_with_lefts(structs : Array[Struct], pos : Int32) -> Int32 {
   let mut right = structs[pos]
   let mut i = pos
   while i > 0 {

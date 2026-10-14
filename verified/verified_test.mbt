@@ -1,7 +1,7 @@
 ///|
 test "find_range on delete-set shaped input" {
-  let starts : FixedArray[Int] = [0, 5, 10, 100]
-  let lens : FixedArray[Int] = [3, 2, 50, 1]
+  let starts : FixedArray[Int32] = [0, 5, 10, 100]
+  let lens : FixedArray[Int32] = [3, 2, 50, 1]
   assert_true(@verified.check_ranges(starts, lens))
   debug_inspect(@verified.find_range(starts, lens, 0), content="Some(0)")
   debug_inspect(@verified.find_range(starts, lens, 3), content="None")
@@ -14,8 +14,8 @@ test "find_range on delete-set shaped input" {
 
 ///|
 test "find_range near Int max does not overflow" {
-  let starts : FixedArray[Int] = [2147483600]
-  let lens : FixedArray[Int] = [47]
+  let starts : FixedArray[Int32] = [2147483600]
+  let lens : FixedArray[Int32] = [47]
   debug_inspect(
     @verified.find_range(starts, lens, 2147483646),
     content="Some(0)",
@@ -50,8 +50,8 @@ test "check_ranges rejects overlaps and empty ranges" {
 test "property: find_range agrees with a linear scan" {
   @quickcheck.check((xs : Array[UInt16]) => {
     // build sorted disjoint ranges from random gaps/lengths
-    let starts : Array[Int] = []
-    let lens : Array[Int] = []
+    let starts : Array[Int32] = []
+    let lens : Array[Int32] = []
     let mut pos = 0
     for i, x in xs {
       let v = x.to_int()

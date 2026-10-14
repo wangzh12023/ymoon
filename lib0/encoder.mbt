@@ -10,13 +10,13 @@ pub struct Encoder {
 
 ///|
 /// Creates an empty encoder.
-pub fn Encoder::Encoder(size_hint? : Int = 64) -> Encoder {
+pub fn Encoder::Encoder(size_hint~ : Int32 = 64) -> Encoder {
   { buf: @buffer.Buffer(size_hint~), }
 }
 
 ///|
 /// Number of bytes written so far.
-pub fn Encoder::length(self : Encoder) -> Int {
+pub fn Encoder::length(self : Encoder) -> Int32 {
   self.buf.length()
 }
 
@@ -28,7 +28,7 @@ pub fn Encoder::to_bytes(self : Encoder) -> Bytes {
 
 ///|
 /// Writes one byte (`writeUint8`). Only the low 8 bits of `b` are used.
-pub fn Encoder::write_u8(self : Encoder, b : Int) -> Unit {
+pub fn Encoder::write_u8(self : Encoder, b : Int32) -> Unit {
   self.buf.write_byte((b & 0xff).to_byte())
 }
 
@@ -56,7 +56,7 @@ pub fn Encoder::write_var_uint64(self : Encoder, num : UInt64) -> Unit {
 ///
 /// Negative values are a programming error: Yjs never encodes them with
 /// `writeVarUint`.
-pub fn Encoder::write_var_uint(self : Encoder, num : Int) -> Unit {
+pub fn Encoder::write_var_uint(self : Encoder, num : Int32) -> Unit {
   guard num >= 0 else { abort("write_var_uint: negative value \{num}") }
   self.write_var_uint64(num.to_uint64())
 }
@@ -70,7 +70,7 @@ pub fn Encoder::write_var_uint(self : Encoder, num : Int) -> Unit {
 pub fn Encoder::write_var_int64(
   self : Encoder,
   num : Int64,
-  negative_zero? : Bool = false,
+  negative_zero~ : Bool = false,
 ) -> Unit {
   let is_negative = num < 0L || (num == 0L && negative_zero)
   // magnitude as unsigned to survive Int64::min_value
@@ -93,7 +93,7 @@ pub fn Encoder::write_var_int64(
 
 ///|
 /// Writes a variable length signed `Int`.
-pub fn Encoder::write_var_int(self : Encoder, num : Int) -> Unit {
+pub fn Encoder::write_var_int(self : Encoder, num : Int32) -> Unit {
   self.write_var_int64(num.to_int64())
 }
 

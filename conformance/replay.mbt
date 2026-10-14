@@ -4,10 +4,10 @@
 ///|
 /// Outcome of replaying one trace.
 pub(all) struct TraceResult {
-  id : Int
+  id : Int32
   mode : String
   /// Number of compared updates / sync messages.
-  checks : Int
+  checks : Int32
   /// Human-readable description of the first mismatch, if any.
   failure : String?
 }
@@ -28,7 +28,7 @@ pub fn hex(b : Bytes) -> String {
 ///|
 /// Decodes the hex encoding used by the trace files.
 pub fn unhex(s : StringView) -> Bytes {
-  fn digit(c : Int) -> Int {
+  fn digit(c : Int32) -> Int32 {
     if c >= '0'.to_int() && c <= '9'.to_int() {
       c - '0'.to_int()
     } else {
@@ -54,7 +54,7 @@ fn jstr(j : Json, key : String) -> String {
 }
 
 ///|
-fn jint(j : Json, key : String) -> Int {
+fn jint(j : Json, key : String) -> Int32 {
   match j {
     Object(m) =>
       match m.get(key) {

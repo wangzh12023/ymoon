@@ -6,10 +6,10 @@
 priv struct LazyStructReader {
   dec : @lib0.Decoder
   filter_skips : Bool
-  mut remaining_clients : Int
-  mut remaining_structs : Int
-  mut client : UInt
-  mut clock : Int
+  mut remaining_clients : Int32
+  mut remaining_structs : Int32
+  mut client : UInt32
+  mut clock : Int32
   mut curr : Struct?
 }
 
@@ -67,10 +67,10 @@ fn LazyStructReader::next(
 ///|
 /// Accumulates structs grouped per client (`LazyStructWriter`).
 priv struct LazyStructWriter {
-  mut curr_client : UInt
-  mut written : Int
+  mut curr_client : UInt32
+  mut written : Int32
   mut rest : @lib0.Encoder
-  client_structs : Array[(Int, Bytes)]
+  client_structs : Array[(Int32, Bytes)]
 }
 
 ///|
@@ -91,7 +91,7 @@ fn LazyStructWriter::flush(self : LazyStructWriter) -> Unit {
 fn LazyStructWriter::write(
   self : LazyStructWriter,
   s : Struct,
-  offset : Int,
+  offset : Int32,
 ) -> Unit {
   let id = s.id()
   if self.written > 0 && self.curr_client != id.client {
@@ -121,7 +121,7 @@ fn LazyStructWriter::finish(
 
 ///|
 /// Slices a struct at `diff` (`sliceStruct`).
-fn slice_struct(left : Struct, diff : Int) -> Struct {
+fn slice_struct(left : Struct, diff : Int32) -> Struct {
   match left {
     GC(g) =>
       GC({
@@ -201,7 +201,7 @@ pub fn merge_updates(
   let mut readers = update_decoders.map(d => {
     LazyStructReader::new_reader(d, true)
   })
-  let mut curr_write : (Struct, Int)? = None
+  let mut curr_write : (Struct, Int32)? = None
   let writer = LazyStructWriter::new_writer()
   for ;; {
     readers = readers.filter(r => r.curr is Some(_))
@@ -365,7 +365,7 @@ pub fn encode_state_vector_from_update(
   update : BytesView,
 ) -> Bytes raise @lib0.DecodeError {
   let reader = LazyStructReader::new_reader(@lib0.Decoder(update), false)
-  let pairs : Array[(UInt, Int)] = []
+  let pairs : Array[(UInt32, Int32)] = []
   match reader.curr {
     None => ()
     Some(first) => {
@@ -408,14 +408,14 @@ pub fn encode_state_vector_from_update(
 /// A struct as seen in a decoded update (for inspection tools).
 pub(all) enum DecodedStruct {
   /// A garbage-collected range.
-  GC(client~ : UInt, clock~ : Int, len~ : Int)
+  GC(client~ : UInt32, clock~ : Int32, len~ : Int32)
   /// A gap of unknown structs.
-  Skip(client~ : UInt, clock~ : Int, len~ : Int)
+  Skip(client~ : UInt32, clock~ : Int32, len~ : Int32)
   /// An item.
   Item(
-    client~ : UInt,
-    clock~ : Int,
-    len~ : Int,
+    client~ : UInt32,
+    clock~ : Int32,
+    len~ : Int32,
     origin~ : ID?,
     right_origin~ : ID?,
     parent~ : String?,

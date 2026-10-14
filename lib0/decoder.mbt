@@ -4,23 +4,23 @@
 /// Errors raised while decoding lib0 / Yjs binary data.
 pub(all) suberror DecodeError {
   /// The input ended before the value was complete.
-  UnexpectedEnd(pos~ : Int)
+  UnexpectedEnd(pos~ : Int32)
   /// A variable length integer does not fit in 53 bits (JavaScript's safe
   /// integer range), or does not fit the requested MoonBit integer type.
-  IntegerOutOfRange(pos~ : Int)
+  IntegerOutOfRange(pos~ : Int32)
   /// A string payload is not valid UTF-8.
-  InvalidUtf8(pos~ : Int)
+  InvalidUtf8(pos~ : Int32)
   /// A tag byte or enum discriminant has no meaning in this position.
-  UnknownTag(pos~ : Int, tag~ : Int)
+  UnknownTag(pos~ : Int32, tag~ : Int32)
   /// Structural error in an otherwise well formed byte stream.
-  Malformed(pos~ : Int, reason~ : String)
+  Malformed(pos~ : Int32, reason~ : String)
 } derive(Debug, Eq)
 
 ///|
 /// A cursor over a byte slice.
 pub struct Decoder {
   priv data : BytesView
-  priv mut pos : Int
+  priv mut pos : Int32
 }
 
 ///|
@@ -31,13 +31,13 @@ pub fn Decoder::Decoder(data : BytesView) -> Decoder {
 
 ///|
 /// Current read offset.
-pub fn Decoder::pos(self : Decoder) -> Int {
+pub fn Decoder::pos(self : Decoder) -> Int32 {
   self.pos
 }
 
 ///|
 /// Total number of bytes in the underlying slice.
-pub fn Decoder::length(self : Decoder) -> Int {
+pub fn Decoder::length(self : Decoder) -> Int32 {
   self.data.length()
 }
 
@@ -49,7 +49,7 @@ pub fn Decoder::has_content(self : Decoder) -> Bool {
 
 ///|
 /// Reads one byte (`readUint8`).
-pub fn Decoder::read_u8(self : Decoder) -> Int raise DecodeError {
+pub fn Decoder::read_u8(self : Decoder) -> Int32 raise DecodeError {
   guard self.pos < self.data.length() else { raise UnexpectedEnd(pos=self.pos) }
   let b = self.data[self.pos].to_int()
   self.pos += 1
@@ -60,7 +60,7 @@ pub fn Decoder::read_u8(self : Decoder) -> Int raise DecodeError {
 /// Reads `len` raw bytes (`readUint8Array`).
 pub fn Decoder::read_raw(
   self : Decoder,
-  len : Int,
+  len : Int32,
 ) -> BytesView raise DecodeError {
   guard len >= 0 && self.pos + len <= self.data.length() else {
     raise UnexpectedEnd(pos=self.pos)
@@ -99,7 +99,7 @@ pub fn Decoder::read_var_uint64(self : Decoder) -> UInt64 raise DecodeError {
 ///|
 /// Reads an unsigned variable length integer that must fit in a
 /// non-negative `Int` (used for lengths, clocks and offsets).
-pub fn Decoder::read_var_uint(self : Decoder) -> Int raise DecodeError {
+pub fn Decoder::read_var_uint(self : Decoder) -> Int32 raise DecodeError {
   let start = self.pos
   let n = self.read_var_uint64()
   guard n <= 0x7fffffffUL else { raise IntegerOutOfRange(pos=start) }

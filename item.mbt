@@ -3,7 +3,7 @@
 
 ///|
 /// Splits `left` at `diff`, returning the new right half (`splitItem`).
-fn split_item(txn : Transaction, left : Item, diff : Int) -> Item {
+fn split_item(txn : Transaction, left : Item, diff : Int32) -> Item {
   let client = left.id.client
   let clock = left.id.clock
   let (lc, rc) = left.content.split(diff)
@@ -51,7 +51,7 @@ fn Item::get_missing(
   self : Item,
   txn : Transaction,
   store : StructStore,
-) -> UInt? {
+) -> UInt32? {
   match self.origin {
     Some(o) if o.client != self.id.client &&
       o.clock >= store.get_state(o.client) => return Some(o.client)
@@ -143,7 +143,7 @@ fn Item::get_missing(
 
 ///|
 /// Integrates the item into the document (`Item.integrate`).
-fn Item::integrate(self : Item, txn : Transaction, offset : Int) -> Unit {
+fn Item::integrate(self : Item, txn : Transaction, offset : Int32) -> Unit {
   let store = txn.doc.store
   if offset > 0 {
     self.id = { client: self.id.client, clock: self.id.clock + offset, }

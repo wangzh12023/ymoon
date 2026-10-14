@@ -119,7 +119,7 @@ test "room: two clients converge through the server" {
   let to_bob : Array[Bytes] = []
   room.connect(1, b => to_alice.push(b))
   room.connect(2, b => to_bob.push(b))
-  fn pump(doc : @ymoon.Doc, inbox : Array[Bytes], conn : Int) raise {
+  fn pump(doc : @ymoon.Doc, inbox : Array[Bytes], conn : Int32) raise {
     while inbox.length() > 0 {
       let msg = inbox.remove(0)
       match @protocols.Message::decode(msg) {

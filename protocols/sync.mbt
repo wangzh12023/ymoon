@@ -23,7 +23,7 @@ pub(all) enum SyncMessage {
 
 ///|
 /// Wire tag of a sync sub-message.
-fn SyncMessage::tag(self : SyncMessage) -> Int {
+fn SyncMessage::tag(self : SyncMessage) -> Int32 {
   match self {
     SyncStep1(_) => 0
     SyncStep2(_) => 1
@@ -85,7 +85,7 @@ pub fn sync_step2(
 pub fn handle_sync_message(
   doc : @ymoon.Doc,
   msg : SyncMessage,
-  origin? : String = "remote",
+  origin~ : String = "remote",
 ) -> SyncMessage? raise @lib0.DecodeError {
   match msg {
     SyncStep1(sv) => Some(sync_step2(doc, sv))

@@ -48,7 +48,7 @@ fn js_strict_equal(a : @lib0.Any, b : @lib0.Any) -> Bool {
 priv struct TextPos {
   mut left : Item?
   mut right : Item?
-  mut index : Int
+  mut index : Int32
   current_attributes : Map[String, @lib0.Any]
 }
 
@@ -82,7 +82,11 @@ fn update_current_attributes(
 ///|
 /// Moves `pos` forward by `count` countable units, splitting items
 /// (`findNextPosition`).
-fn find_next_position(txn : Transaction, pos : TextPos, count : Int) -> TextPos {
+fn find_next_position(
+  txn : Transaction,
+  pos : TextPos,
+  count : Int32,
+) -> TextPos {
   let mut count = count
   while pos.right is Some(r) && count > 0 {
     match r.content {
@@ -117,7 +121,7 @@ fn find_next_position(txn : Transaction, pos : TextPos, count : Int) -> TextPos 
 fn find_position(
   txn : Transaction,
   parent : Branch,
-  index : Int,
+  index : Int32,
   use_search_marker : Bool,
 ) -> TextPos {
   let current_attributes : Map[String, @lib0.Any] = Map([])
@@ -317,7 +321,7 @@ fn format_text(
   txn : Transaction,
   parent : Branch,
   curr : TextPos,
-  length : Int,
+  length : Int32,
   attributes : Attrs,
 ) -> Unit {
   minimize_attribute_changes(curr, attributes)
@@ -391,7 +395,7 @@ fn cleanup_formatting_gap(
   curr : Item?,
   start_attributes : Map[String, @lib0.Any],
   curr_attributes : Map[String, @lib0.Any],
-) -> Int {
+) -> Int32 {
   let mut end : Item? = Some(start)
   let end_formats : Map[String, Item] = Map([])
   while end is Some(e) && (!e.countable() || e.deleted()) {
@@ -476,7 +480,7 @@ fn cleanup_contextless_formatting_gap(txn : Transaction, item : Item) -> Unit {
 
 ///|
 /// Removes all redundant formatting of a text (`cleanupYTextFormatting`).
-fn cleanup_ytext_formatting(t : Branch) -> Int {
+fn cleanup_ytext_formatting(t : Branch) -> Int32 {
   let mut res = 0
   t
   .doc_or_abort()
@@ -601,7 +605,7 @@ fn iterate_deleted_structs(
 
 ///|
 /// Deletes `length` units at the cursor (`deleteText`).
-fn delete_text(txn : Transaction, curr : TextPos, length : Int) -> TextPos {
+fn delete_text(txn : Transaction, curr : TextPos, length : Int32) -> TextPos {
   let start_length = length
   let start_attrs = copy_attrs(curr.current_attributes)
   let start = curr.right
@@ -661,9 +665,9 @@ pub(all) enum Delta {
   /// Insert text or an embed with attributes.
   Insert(TextChunk, attributes~ : Attrs)
   /// Keep `n` units, optionally changing their attributes.
-  Retain(Int, attributes~ : Attrs)
+  Retain(Int32, attributes~ : Attrs)
   /// Delete `n` units.
-  Delete(Int)
+  Delete(Int32)
 }
 
 ///|
@@ -692,7 +696,7 @@ pub fn TextRef::branch(self : TextRef) -> Branch {
 
 ///|
 /// Length in UTF-16 code units, like JavaScript string length.
-pub fn TextRef::length(self : TextRef) -> Int {
+pub fn TextRef::length(self : TextRef) -> Int32 {
   self.branch.length
 }
 
@@ -723,7 +727,7 @@ fn Branch::text_to_string(self : Branch) -> String {
 /// formatting at that position, like `Y.Text.insert`.
 pub fn TextRef::insert(
   self : TextRef,
-  index : Int,
+  index : Int32,
   text : String,
   attributes? : Attrs,
 ) -> Unit raise TypeError {
@@ -743,7 +747,7 @@ pub fn TextRef::insert(
 }
 
 ///|
-fn check_index(index : Int, length : Int) -> Unit raise TypeError {
+fn check_index(index : Int32, length : Int32) -> Unit raise TypeError {
   if index < 0 || index > length {
     raise LengthExceeded(index~, length~)
   }
@@ -753,7 +757,7 @@ fn check_index(index : Int, length : Int) -> Unit raise TypeError {
 /// Inserts an embed (image, mention, ...) at `index` (`insertEmbed`).
 pub fn TextRef::insert_embed(
   self : TextRef,
-  index : Int,
+  index : Int32,
   embed : @lib0.Any,
   attributes? : Attrs,
 ) -> Unit raise TypeError {
@@ -773,8 +777,8 @@ pub fn TextRef::insert_embed(
 /// Deletes `length` UTF-16 code units starting at `index`.
 pub fn TextRef::delete(
   self : TextRef,
-  index : Int,
-  length : Int,
+  index : Int32,
+  length : Int32,
 ) -> Unit raise TypeError {
   if length == 0 {
     return
@@ -794,8 +798,8 @@ pub fn TextRef::delete(
 /// Applies `attributes` to the range `[index, index + length)` (`format`).
 pub fn TextRef::format(
   self : TextRef,
-  index : Int,
-  length : Int,
+  index : Int32,
+  length : Int32,
   attributes : Attrs,
 ) -> Unit {
   if length == 0 {

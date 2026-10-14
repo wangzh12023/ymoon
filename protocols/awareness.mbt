@@ -4,16 +4,16 @@
 ///|
 /// Clock and last-update time of a client's awareness state.
 pub(all) struct MetaClientState {
-  clock : Int
+  clock : Int32
   last_updated : UInt64
 } derive(Eq, Debug)
 
 ///|
 /// Clients whose awareness changed, split by kind.
 pub(all) struct AwarenessChange {
-  added : Array[UInt]
-  updated : Array[UInt]
-  removed : Array[UInt]
+  added : Array[UInt32]
+  updated : Array[UInt32]
+  removed : Array[UInt32]
 } derive(Eq, Debug)
 
 ///|
@@ -28,9 +28,9 @@ pub const OUTDATED_TIMEOUT : UInt64 = 30000
 /// `check_outdated` periodically (e.g. every 3 s) from your event loop.
 pub struct Awareness {
   /// The local client id (same as the document's).
-  client_id : UInt
-  priv states : Map[UInt, @lib0.Any]
-  priv meta : Map[UInt, MetaClientState]
+  client_id : UInt32
+  priv states : Map[UInt32, @lib0.Any]
+  priv meta : Map[UInt32, MetaClientState]
   priv now : () -> UInt64
   priv change_handlers : Array[(AwarenessChange, String) -> Unit]
   priv update_handlers : Array[(AwarenessChange, String) -> Unit]
@@ -41,8 +41,8 @@ pub struct Awareness {
 /// `new Awareness(doc)`. `now` returns milliseconds (defaults to the system
 /// clock); inject a fake clock for deterministic tests.
 pub fn Awareness::Awareness(
-  client_id : UInt,
-  now? : () -> UInt64 = () => @env.now(),
+  client_id : UInt32,
+  now~ : () -> UInt64 = () => @env.now(),
 ) -> Awareness {
   let a : Awareness = {
     client_id,
@@ -105,13 +105,13 @@ pub fn Awareness::local_state(self : Awareness) -> @lib0.Any? {
 
 ///|
 /// All known states by client id.
-pub fn Awareness::states(self : Awareness) -> Map[UInt, @lib0.Any] {
+pub fn Awareness::states(self : Awareness) -> Map[UInt32, @lib0.Any] {
   self.states
 }
 
 ///|
 /// Meta information of a client.
-pub fn Awareness::meta(self : Awareness, client : UInt) -> MetaClientState? {
+pub fn Awareness::meta(self : Awareness, client : UInt32) -> MetaClientState? {
   self.meta.get(client)
 }
 
@@ -129,10 +129,10 @@ pub fn Awareness::set_local_state(self : Awareness, state : @lib0.Any?) -> Unit 
     Some(s) => self.states[client_id] = s
   }
   self.meta[client_id] = { clock, last_updated: (self.now)(), }
-  let added : Array[UInt] = []
-  let updated : Array[UInt] = []
-  let filtered_updated : Array[UInt] = []
-  let removed : Array[UInt] = []
+  let added : Array[UInt32] = []
+  let updated : Array[UInt32] = []
+  let filtered_updated : Array[UInt32] = []
+  let removed : Array[UInt32] = []
   match (state, prev_state) {
     (None, _) => removed.push(client_id)
     (Some(_), None) => added.push(client_id)
@@ -173,10 +173,10 @@ pub fn Awareness::set_local_state_field(
 /// Removes the given clients (`removeAwarenessStates`).
 pub fn Awareness::remove_states(
   self : Awareness,
-  clients : ArrayView[UInt],
+  clients : ArrayView[UInt32],
   origin : String,
 ) -> Unit {
-  let removed : Array[UInt] = []
+  let removed : Array[UInt32] = []
   for client in clients {
     if self.states.contains(client) {
       self.states.remove(client)
@@ -208,7 +208,7 @@ pub fn Awareness::check_outdated(self : Awareness) -> Unit {
       self.set_local_state(Some(s))
     _ => ()
   }
-  let remove : Array[UInt] = []
+  let remove : Array[UInt32] = []
   for client, m in self.meta {
     if client != self.client_id &&
       OUTDATED_TIMEOUT <= now - m.last_updated &&
@@ -225,7 +225,7 @@ pub fn Awareness::check_outdated(self : Awareness) -> Unit {
 /// Encodes the states of `clients` (`encodeAwarenessUpdate`).
 pub fn Awareness::encode_update(
   self : Awareness,
-  clients : ArrayView[UInt],
+  clients : ArrayView[UInt32],
 ) -> Bytes {
   let enc = @lib0.Encoder()
   enc.write_var_uint(clients.length())
@@ -251,10 +251,10 @@ pub fn Awareness::apply_update(
 ) -> Unit raise @lib0.DecodeError {
   let dec = @lib0.Decoder(update)
   let timestamp = (self.now)()
-  let added : Array[UInt] = []
-  let updated : Array[UInt] = []
-  let filtered_updated : Array[UInt] = []
-  let removed : Array[UInt] = []
+  let added : Array[UInt32] = []
+  let updated : Array[UInt32] = []
+  let filtered_updated : Array[UInt32] = []
+  let removed : Array[UInt32] = []
   let len = dec.read_var_uint()
   for _ in 0..<len {
     let pos = dec.pos()

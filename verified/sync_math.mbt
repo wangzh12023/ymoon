@@ -9,10 +9,10 @@
 /// Proved: the offset lies inside the struct and skips exactly the clocks the
 /// peer already has; no arithmetic overflows.
 pub fn missing_offset(
-  clock : Int,
-  len : Int,
-  known : Int,
-) -> Int? where {
+  clock : Int32,
+  len : Int32,
+  known : Int32,
+) -> Int32? where {
   proof_require: 0 <= clock && 0 < len && 0 <= known,
   proof_ensure: result => missing_offset_ok(clock, len, known, result),
 } {
@@ -34,11 +34,11 @@ pub fn missing_offset(
 /// Proved: the merged range starts at `a`, contains both inputs and contains
 /// nothing outside their union.
 pub fn merge_ranges(
-  a : Int,
-  alen : Int,
-  b : Int,
-  blen : Int,
-) -> (Int, Int)? where {
+  a : Int32,
+  alen : Int32,
+  b : Int32,
+  blen : Int32,
+) -> (Int32, Int32)? where {
   proof_require: 0 <= a && 0 < alen && 0 <= b && 0 < blen && a <= b,
   proof_require: mle(madd(m(a), m(alen)), m(2147483647)),
   proof_require: mle(madd(m(b), m(blen)), m(2147483647)),
@@ -62,8 +62,8 @@ pub fn merge_ranges(
 /// ordered and disjoint; combined with `adjacent_ordered` being transitive
 /// (exercised by the property tests) this is the precondition of `find_range`.
 pub fn check_ranges(
-  starts : FixedArray[Int],
-  lens : FixedArray[Int],
+  starts : FixedArray[Int32],
+  lens : FixedArray[Int32],
 ) -> Bool where {
   proof_ensure: result => {
     result →

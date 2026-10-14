@@ -4,7 +4,7 @@
 // byte-identical updates).
 
 ///|
-const MAX_SEARCH_MARKER : Int = 80
+const MAX_SEARCH_MARKER : Int32 = 80
 
 ///|
 /// A cached (item, index) position used to speed up index lookups
@@ -12,16 +12,16 @@ const MAX_SEARCH_MARKER : Int = 80
 /// sees, so they are ported exactly to keep updates byte-identical with Yjs.
 struct SearchMarker {
   mut p : Item
-  mut index : Int
-  mut timestamp : Int
+  mut index : Int32
+  mut timestamp : Int32
 }
 
 ///|
 /// Global marker clock (`globalSearchMarkerTimestamp`).
-let marker_clock : Ref[Int] = Ref(0)
+let marker_clock : Ref[Int32] = Ref(0)
 
 ///|
-fn next_timestamp() -> Int {
+fn next_timestamp() -> Int32 {
   let t = marker_clock.val
   marker_clock.val = t + 1
   t
@@ -56,7 +56,7 @@ fn is_marked(item : Item) -> Bool {
 }
 
 ///|
-fn overwrite_marker(marker : SearchMarker, p : Item, index : Int) -> Unit {
+fn overwrite_marker(marker : SearchMarker, p : Item, index : Int32) -> Unit {
   set_marked(marker.p, false)
   marker.p = p
   set_marked(p, true)
@@ -68,7 +68,7 @@ fn overwrite_marker(marker : SearchMarker, p : Item, index : Int) -> Unit {
 fn mark_position(
   search_marker : Array[SearchMarker],
   p : Item,
-  index : Int,
+  index : Int32,
 ) -> SearchMarker {
   if search_marker.length() >= MAX_SEARCH_MARKER {
     // override the oldest marker (reduce keeps the later one on ties)
@@ -91,7 +91,7 @@ fn mark_position(
 
 ///|
 /// Finds (or creates) a search marker close to `index` (`findMarker`).
-fn find_marker(parent : Branch, index : Int) -> SearchMarker? {
+fn find_marker(parent : Branch, index : Int32) -> SearchMarker? {
   guard parent.start is Some(start) && index != 0 else { return None }
   guard parent.markers() is Some(search_marker) else { return None }
   let marker = if search_marker.length() == 0 {
@@ -158,8 +158,8 @@ fn find_marker(parent : Branch, index : Int) -> SearchMarker? {
 /// at `index` (`updateMarkerChanges`).
 fn update_marker_changes(
   search_marker : Array[SearchMarker],
-  index : Int,
-  len : Int,
+  index : Int32,
+  len : Int32,
 ) -> Unit {
   let mut i = search_marker.length() - 1
   while i >= 0 {
@@ -272,7 +272,7 @@ fn type_list_insert_after(
 /// Errors raised by index based operations on shared types.
 pub(all) suberror TypeError {
   /// An index or length exceeds the current length of the type.
-  LengthExceeded(index~ : Int, length~ : Int)
+  LengthExceeded(index~ : Int32, length~ : Int32)
 } derive(Debug, Eq)
 
 ///|
@@ -280,7 +280,7 @@ pub(all) suberror TypeError {
 fn type_list_insert(
   txn : Transaction,
   parent : Branch,
-  index : Int,
+  index : Int32,
   content : ArrayView[Value],
 ) -> Unit raise TypeError {
   if index > parent.length || index < 0 {
@@ -377,8 +377,8 @@ fn type_list_push(
 fn type_list_delete(
   txn : Transaction,
   parent : Branch,
-  index : Int,
-  length : Int,
+  index : Int32,
+  length : Int32,
 ) -> Unit raise TypeError {
   if length == 0 {
     return
@@ -541,7 +541,7 @@ fn append_content_values(out : Array[Out], item : Item) -> Unit {
 
 ///|
 /// Element at `index` of a list type (`typeListGet`).
-fn type_list_get(parent : Branch, index : Int) -> Out? {
+fn type_list_get(parent : Branch, index : Int32) -> Out? {
   let marker = find_marker(parent, index)
   let mut n = parent.start
   let mut index = index

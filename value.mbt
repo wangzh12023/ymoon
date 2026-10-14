@@ -27,7 +27,7 @@ pub fn Value::num(d : Double) -> Value {
 
 ///|
 /// Shorthand for an integral number value.
-pub fn Value::int(n : Int) -> Value {
+pub fn Value::int(n : Int32) -> Value {
   Any(Number(n.to_double()))
 }
 

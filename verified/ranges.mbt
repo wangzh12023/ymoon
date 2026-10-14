@@ -7,10 +7,10 @@
 /// `moon prove` under the bounded machine-integer model: the result covers
 /// `clock`, `None` means no range does, and no arithmetic can overflow.
 pub fn find_range(
-  starts : FixedArray[Int],
-  lens : FixedArray[Int],
-  clock : Int,
-) -> Int? where {
+  starts : FixedArray[Int32],
+  lens : FixedArray[Int32],
+  clock : Int32,
+) -> Int32? where {
   proof_require: valid_ranges(starts, lens),
   proof_ensure: result => find_range_ok(starts, lens, clock, result),
 } {
@@ -25,16 +25,16 @@ pub fn find_range(
         break Some(mid)
       }
       proof_assert mle(end_of(starts, lens, mid), m(clock))
-      proof_assert ∀ i : Int,
+      proof_assert ∀ i : Int32,
         0 <= i && i <= mid → !covers(starts, lens, i, clock)
       continue mid + 1, hi
     } else {
       proof_assert clock < starts[mid]
-      proof_assert ∀ i : Int,
+      proof_assert ∀ i : Int32,
         mid < i && i < starts.length() → starts[mid] < starts[i]
-      proof_assert ∀ i : Int,
+      proof_assert ∀ i : Int32,
         mid <= i && i < starts.length() → clock < starts[i]
-      proof_assert ∀ i : Int,
+      proof_assert ∀ i : Int32,
         mid <= i && i < starts.length() → !covers(starts, lens, i, clock)
       continue lo, mid
     }
@@ -44,9 +44,9 @@ pub fn find_range(
     proof_invariant: 0 <= lo,
     proof_invariant: lo <= hi,
     proof_invariant: hi <= starts.length(),
-    proof_invariant: ∀ i : Int,
+    proof_invariant: ∀ i : Int32,
       0 <= i && i < lo → !covers(starts, lens, i, clock),
-    proof_invariant: ∀ i : Int,
+    proof_invariant: ∀ i : Int32,
       hi <= i && i < starts.length() → !covers(starts, lens, i, clock),
     proof_yield: res => find_range_ok(starts, lens, clock, res),
     proof_reasoning: (

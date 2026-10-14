@@ -21,7 +21,7 @@ fn unhex(s : String) -> Bytes {
 }
 
 ///|
-fn hex_digit(c : Int) -> Int {
+fn hex_digit(c : Int32) -> Int32 {
   if c >= '0'.to_int() && c <= '9'.to_int() {
     c - '0'.to_int()
   } else {

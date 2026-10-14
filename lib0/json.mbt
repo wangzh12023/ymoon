@@ -63,7 +63,7 @@ pub fn js_number_to_string(d : Double) -> String {
 ///
 /// Uses MoonBit's shortest round-trip formatter (Ryu) and re-parses its
 /// output into (digits, exponent), which is backend independent.
-fn shortest_digits(d : Double) -> (String, Int) {
+fn shortest_digits(d : Double) -> (String, Int32) {
   let s = d.to_string()
   // s looks like "123", "0.000123", "1.5e-7", "1e+21", "123456789.12345679"
   let mut mantissa = s
@@ -228,7 +228,7 @@ fn write_json_any(sb : StringBuilder, v : Any, top : Bool) -> Unit {
 /// Errors from `parse_json`.
 pub(all) suberror JsonError {
   /// Invalid JSON text at the given UTF-16 offset.
-  InvalidJson(pos~ : Int)
+  InvalidJson(pos~ : Int32)
 } derive(Debug, Eq)
 
 ///|
@@ -248,11 +248,11 @@ pub fn parse_json(text : StringView) -> Any raise JsonError {
 ///|
 priv struct JsonParser {
   s : StringView
-  mut pos : Int
+  mut pos : Int32
 }
 
 ///|
-fn JsonParser::peek(self : JsonParser) -> Int {
+fn JsonParser::peek(self : JsonParser) -> Int32 {
   if self.pos < self.s.length() {
     self.s.at(self.pos).to_int()
   } else {
@@ -281,7 +281,7 @@ fn JsonParser::expect(self : JsonParser, lit : String) -> Unit raise JsonError {
 }
 
 ///|
-fn JsonParser::value(self : JsonParser, depth : Int) -> Any raise JsonError {
+fn JsonParser::value(self : JsonParser, depth : Int32) -> Any raise JsonError {
   if depth > 1000 {
     raise InvalidJson(pos=self.pos)
   }

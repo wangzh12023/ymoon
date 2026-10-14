@@ -38,7 +38,7 @@ let number_vectors : ReadOnlyArray[(UInt64, String)] = [
 ]
 
 ///|
-let string_vectors : ReadOnlyArray[(ReadOnlyArray[Int], String)] = [
+let string_vectors : ReadOnlyArray[(ReadOnlyArray[Int32], String)] = [
   ([], "\u{22}\u{22}"),
   ([112, 108, 97, 105, 110], "\u{22}plain\u{22}"),
   (

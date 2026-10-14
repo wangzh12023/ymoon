@@ -12,7 +12,7 @@ fn hex(b : Bytes) -> String {
 
 ///|
 fn unhex(s : String) -> Bytes {
-  fn digit(c : Int) -> Int {
+  fn digit(c : Int32) -> Int32 {
     if c >= '0'.to_int() && c <= '9'.to_int() {
       c - '0'.to_int()
     } else {

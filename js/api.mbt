@@ -4,29 +4,29 @@
 // (Uint8Array on the JS side); structured values as JSON text.
 
 ///|
-let docs : Map[Int, @ymoon.Doc] = Map([])
+let docs : Map[Int32, @ymoon.Doc] = Map([])
 
 ///|
-let rooms : Map[Int, @protocols.Room] = Map([])
+let rooms : Map[Int32, @protocols.Room] = Map([])
 
 ///|
-let outboxes : Map[Int, Array[(Int, Bytes)]] = Map([])
+let outboxes : Map[Int32, Array[(Int32, Bytes)]] = Map([])
 
 ///|
-let update_log : Map[Int, Array[Bytes]] = Map([])
+let update_log : Map[Int32, Array[Bytes]] = Map([])
 
 ///|
-let next_handle : Ref[Int] = Ref(1)
+let next_handle : Ref[Int32] = Ref(1)
 
 ///|
-fn fresh_handle() -> Int {
+fn fresh_handle() -> Int32 {
   let h = next_handle.val
   next_handle.val = h + 1
   h
 }
 
 ///|
-fn doc_of(h : Int) -> @ymoon.Doc {
+fn doc_of(h : Int32) -> @ymoon.Doc {
   match docs.get(h) {
     Some(d) => d
     None => abort("unknown document handle \{h}")
@@ -37,7 +37,7 @@ fn doc_of(h : Int) -> @ymoon.Doc {
 /// Creates a document and returns its handle. `client_id` < 0 picks a
 /// random id.
 #export_name("doc_new")
-pub fn doc_new(client_id : Int) -> Int {
+pub fn doc_new(client_id : Int32) -> Int32 {
   let doc = if client_id < 0 {
     @ymoon.Doc()
   } else {
@@ -54,7 +54,7 @@ pub fn doc_new(client_id : Int) -> Int {
 ///|
 /// Client id of a document (as a signed 32-bit value).
 #export_name("doc_client_id")
-pub fn doc_client_id(h : Int) -> Int {
+pub fn doc_client_id(h : Int32) -> Int32 {
   doc_of(h).client_id().reinterpret_as_int()
 }
 
@@ -62,7 +62,7 @@ pub fn doc_client_id(h : Int) -> Int {
 /// Takes all updates emitted by the document since the last call, merged
 /// into a single update (empty bytes if nothing changed).
 #export_name("doc_take_updates")
-pub fn doc_take_updates(h : Int) -> Bytes {
+pub fn doc_take_updates(h : Int32) -> Bytes {
   let log = update_log.get(h).unwrap()
   if log.length() == 0 {
     return b""
@@ -81,7 +81,7 @@ pub fn doc_take_updates(h : Int) -> Bytes {
 ///|
 /// Applies a v1 update. Returns an empty string or an error message.
 #export_name("doc_apply_update")
-pub fn doc_apply_update(h : Int, update : Bytes) -> String {
+pub fn doc_apply_update(h : Int32, update : Bytes) -> String {
   let doc = doc_of(h)
   // remote updates must not be echoed back as local changes
   let log = update_log.get(h).unwrap()
@@ -96,7 +96,7 @@ pub fn doc_apply_update(h : Int, update : Bytes) -> String {
 ///|
 /// Full state as a v1 update, or the diff for an encoded state vector.
 #export_name("doc_encode_state_as_update")
-pub fn doc_encode_state_as_update(h : Int, state_vector : Bytes) -> Bytes {
+pub fn doc_encode_state_as_update(h : Int32, state_vector : Bytes) -> Bytes {
   let doc = doc_of(h)
   if state_vector.length() == 0 {
     doc.encode_state_as_update()
@@ -111,7 +111,7 @@ pub fn doc_encode_state_as_update(h : Int, state_vector : Bytes) -> Bytes {
 ///|
 /// Encoded state vector.
 #export_name("doc_encode_state_vector")
-pub fn doc_encode_state_vector(h : Int) -> Bytes {
+pub fn doc_encode_state_vector(h : Int32) -> Bytes {
   doc_of(h).encode_state_vector()
 }
 
@@ -119,9 +119,9 @@ pub fn doc_encode_state_vector(h : Int) -> Bytes {
 /// Inserts text into the root text `name`.
 #export_name("text_insert")
 pub fn text_insert(
-  h : Int,
+  h : Int32,
   name : String,
-  index : Int,
+  index : Int32,
   text : String,
 ) -> String {
   doc_of(h).get_text(name).insert(index, text) catch {
@@ -134,9 +134,9 @@ pub fn text_insert(
 /// Inserts formatted text; `attrs_json` is a JSON object.
 #export_name("text_insert_with")
 pub fn text_insert_with(
-  h : Int,
+  h : Int32,
   name : String,
-  index : Int,
+  index : Int32,
   text : String,
   attrs_json : String,
 ) -> String {
@@ -150,7 +150,12 @@ pub fn text_insert_with(
 ///|
 /// Deletes text from the root text `name`.
 #export_name("text_delete")
-pub fn text_delete(h : Int, name : String, index : Int, length : Int) -> String {
+pub fn text_delete(
+  h : Int32,
+  name : String,
+  index : Int32,
+  length : Int32,
+) -> String {
   doc_of(h).get_text(name).delete(index, length) catch {
     e => return "\{e}"
   }
@@ -161,10 +166,10 @@ pub fn text_delete(h : Int, name : String, index : Int, length : Int) -> String 
 /// Applies formatting attributes (`attrs_json`, a JSON object).
 #export_name("text_format")
 pub fn text_format(
-  h : Int,
+  h : Int32,
   name : String,
-  index : Int,
-  length : Int,
+  index : Int32,
+  length : Int32,
   attrs_json : String,
 ) -> Unit {
   doc_of(h).get_text(name).format(index, length, parse_attrs(attrs_json))
@@ -187,14 +192,14 @@ fn parse_attrs(attrs_json : String) -> @ymoon.Attrs {
 ///|
 /// Plain content of the root text `name`.
 #export_name("text_to_string")
-pub fn text_to_string(h : Int, name : String) -> String {
+pub fn text_to_string(h : Int32, name : String) -> String {
   doc_of(h).get_text(name).to_string()
 }
 
 ///|
 /// Rich-text delta of the root text `name` as JSON.
 #export_name("text_to_delta")
-pub fn text_to_delta(h : Int, name : String) -> String {
+pub fn text_to_delta(h : Int32, name : String) -> String {
   @ymoon.delta_to_json(doc_of(h).get_text(name).to_delta()).stringify()
 }
 
@@ -202,7 +207,7 @@ pub fn text_to_delta(h : Int, name : String) -> String {
 /// Sets `key` of the root map `name` to a JSON value.
 #export_name("map_set_json")
 pub fn map_set_json(
-  h : Int,
+  h : Int32,
   name : String,
   key : String,
   value_json : String,
@@ -215,14 +220,18 @@ pub fn map_set_json(
 ///|
 /// Deletes `key` from the root map `name`.
 #export_name("map_delete")
-pub fn map_delete(h : Int, name : String, key : String) -> Unit {
+pub fn map_delete(h : Int32, name : String, key : String) -> Unit {
   doc_of(h).get_map(name).delete(key)
 }
 
 ///|
 /// Pushes JSON values (a JSON array) to the root array `name`.
 #export_name("array_push_json")
-pub fn array_push_json(h : Int, name : String, values_json : String) -> String {
+pub fn array_push_json(
+  h : Int32,
+  name : String,
+  values_json : String,
+) -> String {
   let parsed = @lib0.parse_json(values_json) catch { e => return "\{e}" }
   let values = match parsed {
     Array(xs) => xs.map(x => @ymoon.Value::Any(x))
@@ -236,10 +245,10 @@ pub fn array_push_json(h : Int, name : String, values_json : String) -> String {
 /// Deletes elements of the root array `name`.
 #export_name("array_delete")
 pub fn array_delete(
-  h : Int,
+  h : Int32,
   name : String,
-  index : Int,
-  length : Int,
+  index : Int32,
+  length : Int32,
 ) -> String {
   doc_of(h).get_array(name).delete(index, length~) catch {
     e => return "\{e}"
@@ -250,7 +259,7 @@ pub fn array_delete(
 ///|
 /// JSON view of every root type: `{ name: value }` (like `doc.toJSON()`).
 #export_name("doc_to_json")
-pub fn doc_to_json(h : Int) -> String {
+pub fn doc_to_json(h : Int32) -> String {
   let doc = doc_of(h)
   let out : Map[String, Json] = Map([])
   for name in doc.root_names() {
@@ -350,7 +359,7 @@ pub fn merge_updates_bytes(a : Bytes, b : Bytes) -> Bytes {
 ///|
 /// Creates a server room (y-websocket semantics) and returns its handle.
 #export_name("room_new")
-pub fn room_new(name : String) -> Int {
+pub fn room_new(name : String) -> Int32 {
   let h = fresh_handle()
   rooms[h] = @protocols.Room(name)
   outboxes[h] = []
@@ -361,7 +370,7 @@ pub fn room_new(name : String) -> Int {
 /// Attaches a connection to a room. Outgoing messages are queued; fetch
 /// them with `room_take_outgoing`.
 #export_name("room_connect")
-pub fn room_connect(room : Int, conn : Int) -> Unit {
+pub fn room_connect(room : Int32, conn : Int32) -> Unit {
   let outbox = outboxes.get(room).unwrap()
   rooms.get(room).unwrap().connect(conn, b => outbox.push((conn, b)))
 }
@@ -369,7 +378,7 @@ pub fn room_connect(room : Int, conn : Int) -> Unit {
 ///|
 /// Handles a binary message from `conn`. Returns an error message or "".
 #export_name("room_receive")
-pub fn room_receive(room : Int, conn : Int, data : Bytes) -> String {
+pub fn room_receive(room : Int32, conn : Int32, data : Bytes) -> String {
   rooms.get(room).unwrap().receive(conn, data) catch {
     e => return "\{e}"
   }
@@ -379,35 +388,35 @@ pub fn room_receive(room : Int, conn : Int, data : Bytes) -> String {
 ///|
 /// Detaches a connection.
 #export_name("room_disconnect")
-pub fn room_disconnect(room : Int, conn : Int) -> Unit {
+pub fn room_disconnect(room : Int32, conn : Int32) -> Unit {
   rooms.get(room).unwrap().disconnect(conn)
 }
 
 ///|
 /// Number of queued outgoing messages.
 #export_name("room_outgoing_count")
-pub fn room_outgoing_count(room : Int) -> Int {
+pub fn room_outgoing_count(room : Int32) -> Int32 {
   outboxes.get(room).unwrap().length()
 }
 
 ///|
 /// Connection id of the next queued outgoing message.
 #export_name("room_peek_conn")
-pub fn room_peek_conn(room : Int) -> Int {
+pub fn room_peek_conn(room : Int32) -> Int32 {
   outboxes.get(room).unwrap()[0].0
 }
 
 ///|
 /// Pops the next queued outgoing message.
 #export_name("room_pop_message")
-pub fn room_pop_message(room : Int) -> Bytes {
+pub fn room_pop_message(room : Int32) -> Bytes {
   outboxes.get(room).unwrap().remove(0).1
 }
 
 ///|
 /// Plain text of `name` inside the room's server-side document.
 #export_name("room_text")
-pub fn room_text(room : Int, name : String) -> String {
+pub fn room_text(room : Int32, name : String) -> String {
   // read through the raw root branch: a relay server never upgrades roots
   // to a concrete type, exactly like the y-websocket server
   match rooms.get(room).unwrap().doc.root(name) {
@@ -422,7 +431,7 @@ pub fn room_text(room : Int, name : String) -> String {
 /// `roots` holds the JSON view of every root type; `deltas` the rich-text
 /// delta of roots that hold text. Reading never changes the document.
 #export_name("room_snapshot")
-pub fn room_snapshot(room : Int) -> String {
+pub fn room_snapshot(room : Int32) -> String {
   let r = rooms.get(room).unwrap()
   let doc = r.doc
   let roots : Map[String, Json] = Map([])
@@ -462,7 +471,7 @@ pub fn room_snapshot(room : Int) -> String {
 ///|
 /// JSON view of the room document.
 #export_name("room_to_json")
-pub fn room_to_json(room : Int) -> String {
+pub fn room_to_json(room : Int32) -> String {
   let doc = rooms.get(room).unwrap().doc
   let out : Map[String, Json] = Map([])
   for name in doc.root_names() {
@@ -497,7 +506,7 @@ pub fn annotate_update_json(update : Bytes) -> String {
 ///|
 /// Plain text length in UTF-16 code units of the root text `name`.
 #export_name("text_length")
-pub fn text_length(h : Int, name : String) -> Int {
+pub fn text_length(h : Int32, name : String) -> Int32 {
   doc_of(h).get_text(name).length()
 }
 
@@ -506,10 +515,10 @@ pub fn text_length(h : Int, name : String) -> Int {
 /// text `name`: delete `del` units at `index`, then insert `ins` there.
 #export_name("text_splice")
 pub fn text_splice(
-  h : Int,
+  h : Int32,
   name : String,
-  index : Int,
-  del : Int,
+  index : Int32,
+  del : Int32,
   ins : String,
 ) -> String {
   let t = doc_of(h).get_text(name)

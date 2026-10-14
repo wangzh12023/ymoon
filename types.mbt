@@ -27,7 +27,7 @@ pub fn ArrayRef::branch(self : ArrayRef) -> Branch {
 
 ///|
 /// Number of elements.
-pub fn ArrayRef::length(self : ArrayRef) -> Int {
+pub fn ArrayRef::length(self : ArrayRef) -> Int32 {
   self.branch.length
 }
 
@@ -35,7 +35,7 @@ pub fn ArrayRef::length(self : ArrayRef) -> Int {
 /// Inserts `values` at `index`.
 pub fn ArrayRef::insert(
   self : ArrayRef,
-  index : Int,
+  index : Int32,
   values : ArrayView[Value],
 ) -> Unit raise TypeError {
   let doc = self.branch.doc_or_abort()
@@ -62,8 +62,8 @@ pub fn ArrayRef::unshift(
 /// Deletes `length` elements starting at `index`.
 pub fn ArrayRef::delete(
   self : ArrayRef,
-  index : Int,
-  length? : Int = 1,
+  index : Int32,
+  length~ : Int32 = 1,
 ) -> Unit raise TypeError {
   let doc = self.branch.doc_or_abort()
   doc.transact(txn => type_list_delete(txn, self.branch, index, length))
@@ -71,7 +71,7 @@ pub fn ArrayRef::delete(
 
 ///|
 /// Element at `index`.
-pub fn ArrayRef::get(self : ArrayRef, index : Int) -> Out? {
+pub fn ArrayRef::get(self : ArrayRef, index : Int32) -> Out? {
   type_list_get(self.branch, index)
 }
 
@@ -91,7 +91,7 @@ pub fn ArrayRef::to_json(self : ArrayRef) -> Json {
 /// Inserts a new nested shared type at `index` and returns its branch.
 pub fn ArrayRef::insert_shared(
   self : ArrayRef,
-  index : Int,
+  index : Int32,
   kind : TypeRef,
 ) -> Branch raise TypeError {
   self.insert(index, [Shared(kind)])
@@ -196,7 +196,7 @@ pub fn MapRef::keys(self : MapRef) -> Array[String] {
 
 ///|
 /// Number of keys with a value.
-pub fn MapRef::size(self : MapRef) -> Int {
+pub fn MapRef::size(self : MapRef) -> Int32 {
   self.keys().length()
 }
 
@@ -253,7 +253,7 @@ pub fn XmlRef::node_name(self : XmlRef) -> String? {
 
 ///|
 /// Number of child nodes.
-pub fn XmlRef::length(self : XmlRef) -> Int {
+pub fn XmlRef::length(self : XmlRef) -> Int32 {
   self.branch.length
 }
 
@@ -261,7 +261,7 @@ pub fn XmlRef::length(self : XmlRef) -> Int {
 /// Inserts a new element `<node_name>` at `index` and returns it.
 pub fn XmlRef::insert_element(
   self : XmlRef,
-  index : Int,
+  index : Int32,
   node_name : String,
 ) -> XmlRef raise TypeError {
   let doc = self.branch.doc_or_abort()
@@ -278,7 +278,7 @@ pub fn XmlRef::insert_element(
 /// Inserts a new text node at `index` and returns it.
 pub fn XmlRef::insert_text(
   self : XmlRef,
-  index : Int,
+  index : Int32,
 ) -> TextRef raise TypeError {
   let doc = self.branch.doc_or_abort()
   doc.transact(txn => {
@@ -294,8 +294,8 @@ pub fn XmlRef::insert_text(
 /// Deletes `length` children starting at `index`.
 pub fn XmlRef::delete(
   self : XmlRef,
-  index : Int,
-  length? : Int = 1,
+  index : Int32,
+  length~ : Int32 = 1,
 ) -> Unit raise TypeError {
   let doc = self.branch.doc_or_abort()
   doc.transact(txn => type_list_delete(txn, self.branch, index, length))

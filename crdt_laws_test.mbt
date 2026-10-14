@@ -9,16 +9,16 @@
 ///|
 /// One random editing step.
 priv enum Edit {
-  Insert(peer~ : Int, pos~ : Int, text~ : String)
-  Delete(peer~ : Int, pos~ : Int, len~ : Int)
-  Format(peer~ : Int, pos~ : Int, len~ : Int, bold~ : Bool)
-  MapSet(peer~ : Int, key~ : Int, value~ : Int)
-  ArrayPush(peer~ : Int, value~ : Int)
-  Sync(from~ : Int, to~ : Int)
+  Insert(peer~ : Int32, pos~ : Int32, text~ : String)
+  Delete(peer~ : Int32, pos~ : Int32, len~ : Int32)
+  Format(peer~ : Int32, pos~ : Int32, len~ : Int32, bold~ : Bool)
+  MapSet(peer~ : Int32, key~ : Int32, value~ : Int32)
+  ArrayPush(peer~ : Int32, value~ : Int32)
+  Sync(from~ : Int32, to~ : Int32)
 }
 
 ///|
-fn gen_script(seeds : Array[UInt]) -> Array[Edit] {
+fn gen_script(seeds : Array[UInt32]) -> Array[Edit] {
   // No astral characters here: a concurrent insert that lands inside a
   // remote surrogate pair makes yjs itself diverge (the split pair becomes
   // U+FFFD on some peers only, yjs issue #248). ymoon reproduces that
@@ -45,7 +45,7 @@ fn gen_script(seeds : Array[UInt]) -> Array[Edit] {
 
 ///|
 /// Index that does not split a surrogate pair.
-fn safe_pos(s : String, pos : Int) -> Int {
+fn safe_pos(s : String, pos : Int32) -> Int32 {
   let p = if s.length() == 0 { 0 } else { pos % (s.length() + 1) }
   if p > 0 && p < s.length() {
     let c = s[p - 1].to_int()
@@ -126,7 +126,7 @@ fn full_sync(docs : Array[@ymoon.Doc]) -> Unit raise {
 ///|
 test "property: peers converge after exchanging updates" {
   @quickcheck.check(
-    (seeds : Array[UInt]) => {
+    (seeds : Array[UInt32]) => {
       let docs = [
         @ymoon.Doc(client_id=1),
         @ymoon.Doc(client_id=2),
@@ -150,7 +150,7 @@ test "property: peers converge after exchanging updates" {
 ///|
 test "property: update application commutes and is idempotent" {
   @quickcheck.check(
-    (seeds : Array[UInt]) => {
+    (seeds : Array[UInt32]) => {
       let docs = [
         @ymoon.Doc(client_id=1),
         @ymoon.Doc(client_id=2),
@@ -202,7 +202,7 @@ test "property: update application commutes and is idempotent" {
 ///|
 test "property: diff_update gives exactly what a peer is missing" {
   @quickcheck.check(
-    (seeds : Array[UInt]) => {
+    (seeds : Array[UInt32]) => {
       let docs = [
         @ymoon.Doc(client_id=1),
         @ymoon.Doc(client_id=2),
