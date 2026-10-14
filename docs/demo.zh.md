@@ -63,7 +63,7 @@ moon -C server run main --target native -- 1234
 
 | 检查内容 | 命令 | 期望输出 |
 |---|---|---|
-| 与 yjs 的差分测试：随机生成多 peer 编辑会话（富文本、emoji、中文、数组、map、GC 开关、部分同步），逐字节比较每个更新、状态向量、同步差量和最终状态 | `cd oracle && npm install && node gen-traces.mjs 2000 <任意种子> > out/traces.jsonl && cd ..`，然后 `moon test --target all` | 每个后端 `differential traces: 2000/2000 passed`，`failed: 0` |
+| 与 yjs 的差分测试：随机生成多 peer 编辑会话（富文本、emoji、中文、数组、map、GC 开关、部分同步），逐字节比较每个更新、状态向量、同步差量和最终状态 | `cd oracle && npm install && node gen-traces.mjs 2000 <任意种子> out/traces.jsonl && cd ..`，然后 `moon test --target all` | 每个后端 `differential traces: 2000/2000 passed`，`failed: 0` |
 | 四个后端的全部测试（参考向量、API、CRDT 性质测试、协议、CLI、README 示例） | `moon test --target all` | wasm / wasm-gc / js / native 均 `failed: 0` |
 | 形式化验证（Why3 + Z3，有界机器整数模型，包含溢出检查） | `MOON_PROVE_PRELUDE_OVERRIDE=~/.moon/lib/prelude_proof_machine_int moon prove verified` | `Succeeded: 46 goals proved` |
 | 官方 y-websocket 客户端互通（4 个客户端并发编辑、在线状态、后加入者） | `node oracle/e2e-ywebsocket.mjs` | `E2E OK` |

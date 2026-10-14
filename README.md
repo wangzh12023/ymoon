@@ -220,7 +220,7 @@ node examples/playground/build.mjs   # writes docs/index.html
 Run everything:
 
 ```sh
-cd oracle && npm install && node gen-traces.mjs 2000 7 > out/traces.jsonl && cd ..
+cd oracle && npm install && node gen-traces.mjs 2000 7 out/traces.jsonl && cd ..
 moon test --target all
 MOON_PROVE_PRELUDE_OVERRIDE=~/.moon/lib/prelude_proof_machine_int moon prove verified
 ```

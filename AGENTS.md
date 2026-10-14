@@ -6,7 +6,7 @@ Yjs that must stay byte-compatible with yjs@13.6.33.
 ## Rules specific to ymoon
 
 - Never change encoder output without regenerating and replaying the
-  differential traces: `cd oracle && node gen-traces.mjs 2000 7 > out/traces.jsonl`,
+  differential traces: `cd oracle && node gen-traces.mjs 2000 7 out/traces.jsonl`,
   then `moon test -p wangzh12023/ymoon/conformance --target native --release`.
 - Ports follow the upstream JavaScript structure; keep the upstream function
   name in the doc comment (for example `(\`findIndexSS\`)`).

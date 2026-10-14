@@ -47,8 +47,7 @@ jobs:
         working-directory: oracle
         run: |
           npm ci
-          mkdir -p out
-          node gen-traces.mjs 1000 ${{ github.run_number }} > out/traces.jsonl
+          node gen-traces.mjs 1000 ${{ github.run_number }} out/traces.jsonl
 
       - name: moon test (wasm, wasm-gc, js, native)
         run: moon test --target all

@@ -8,8 +8,10 @@
 // Usage: node oracle/gen-traces.mjs <count> <seed> [output.jsonl]
 // Without an output file the traces go to stdout. Prefer the file argument on
 // Windows: PowerShell pipes re-encode text and would corrupt non-ASCII content.
+// Missing directories in the output path are created.
 import * as Y from 'yjs'
 import fs from 'node:fs'
+import path from 'node:path'
 
 const hex = u8 => Buffer.from(u8).toString('hex')
 
@@ -24,6 +26,7 @@ const rng = seed => () => {
 const count = Number(process.argv[2] || 200)
 const baseSeed = Number(process.argv[3] || 1)
 const outFile = process.argv[4] || null
+if (outFile) fs.mkdirSync(path.dirname(outFile), { recursive: true })
 const sink = outFile ? fs.openSync(outFile, 'w') : null
 const emit = line => { if (sink !== null) fs.writeSync(sink, line); else process.stdout.write(line) }
 
